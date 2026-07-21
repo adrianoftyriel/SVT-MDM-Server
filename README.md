@@ -70,6 +70,20 @@ For a quick LAN-only test you can point an agent at `http://<ha-host>:8099`
 directly, but the Android app blocks cleartext by default — see the agent repo's
 network-security note.
 
+### Dashboard is ingress-only
+
+The published port serves **only** the device API (`/api/*`, authenticated by
+device tokens / the enrollment secret) and `/health`. The operator **dashboard
+is refused on the published port** — it is served only through Home Assistant
+**ingress**, so it inherits HA's login. Open it from the **SVT MDM sidebar panel
+inside Home Assistant**, not from the public proxy URL.
+
+Enforcement uses the real TCP peer address (the HA Supervisor, `172.30.32.2`,
+for ingress); the add-on runs uvicorn **without** `--proxy-headers` so a request
+arriving through the public proxy cannot spoof that address via
+`X-Forwarded-For`. If your ingress uses a different source IP, add it via the
+`dashboard_allowed_ips` option.
+
 ## Local development
 
 ```bash

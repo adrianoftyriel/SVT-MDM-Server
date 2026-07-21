@@ -6,6 +6,7 @@ set -e
 export MDM_ENROLLMENT_SECRET="$(bashio::config 'enrollment_secret')"
 export MDM_LOG_LEVEL="$(bashio::config 'log_level')"
 export MDM_MQTT_PUSH="$(bashio::config 'mqtt_push')"
+export MDM_DASHBOARD_ALLOWED_IPS="$(bashio::config 'dashboard_allowed_ips')"
 export MDM_DB_PATH="/data/mdm.db"
 export MDM_HTTP_PORT="8099"
 
@@ -23,8 +24,9 @@ fi
 
 bashio::log.info "Starting SVT MDM server on port ${MDM_HTTP_PORT}"
 cd /app
+# No --proxy-headers: the dashboard access check relies on the real TCP peer
+# IP (the HA Supervisor for ingress). Trusting X-Forwarded-For would let a
+# request through the public proxy spoof the ingress source address.
 exec python3 -m uvicorn app.main:app \
     --host 0.0.0.0 \
-    --port "${MDM_HTTP_PORT}" \
-    --proxy-headers \
-    --forwarded-allow-ips "*"
+    --port "${MDM_HTTP_PORT}"

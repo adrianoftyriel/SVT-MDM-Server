@@ -48,6 +48,17 @@ class Settings:
         return f"sqlite+pysqlite:///{self.db_path}"
 
     @property
+    def dashboard_allowed_ips(self) -> set[str]:
+        """Source IPs permitted to reach the web dashboard. Ingress requests
+        arrive from the HA Supervisor (172.30.32.2); everything else (the
+        publicly reachable API port) is refused for dashboard routes. Loopback
+        and the TestClient host are allowed for local dev/tests. Extra IPs can
+        be added via MDM_DASHBOARD_ALLOWED_IPS (comma-separated)."""
+        defaults = {"172.30.32.2", "127.0.0.1", "::1", "localhost", "testclient"}
+        extra = os.getenv("MDM_DASHBOARD_ALLOWED_IPS", "")
+        return defaults | {ip.strip() for ip in extra.split(",") if ip.strip()}
+
+    @property
     def mqtt_enabled(self) -> bool:
         return self.mqtt_host is not None
 

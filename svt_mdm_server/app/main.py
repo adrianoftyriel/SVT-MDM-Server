@@ -13,6 +13,7 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 from app import __version__
@@ -54,6 +55,33 @@ async def ingress_root_path(request: Request, call_next):
     ingress_path = request.headers.get("X-Ingress-Path")
     if ingress_path:
         request.scope["root_path"] = ingress_path
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def restrict_dashboard_to_ingress(request: Request, call_next):
+    """Serve the operator dashboard only to Home Assistant ingress.
+
+    The device API (/api/*) and /health stay open on the published port —
+    they authenticate with device tokens / the enrollment secret. Everything
+    else (the dashboard and its assets) is refused unless the request comes
+    from an allowed source (the HA Supervisor), so the dashboard is reachable
+    only through HA's authenticated ingress panel, never the public URL.
+
+    Note: uvicorn runs without --proxy-headers, so request.client.host is the
+    real TCP peer and cannot be spoofed via X-Forwarded-For.
+    """
+    path = request.url.path
+    if path == "/health" or path.startswith("/api"):
+        return await call_next(request)
+
+    client_host = request.client.host if request.client else ""
+    if client_host not in settings.dashboard_allowed_ips:
+        log.info("Blocked dashboard access from %s (%s)", client_host, path)
+        return PlainTextResponse(
+            "The SVT MDM dashboard is only available through Home Assistant.",
+            status_code=403,
+        )
     return await call_next(request)
 
 
