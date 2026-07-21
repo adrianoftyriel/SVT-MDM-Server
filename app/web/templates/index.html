@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Devices · SVT MDM{% endblock %}
+{% block content %}
+<h1>Devices</h1>
+
+{% if devices %}
+<table class="devices">
+  <thead>
+    <tr><th>Name</th><th>Platform</th><th>Tier</th><th>Status</th><th>Last seen</th></tr>
+  </thead>
+  <tbody>
+    {% for d in devices %}
+    <tr>
+      <td><a href="{{ request.url_for('device_detail', device_id=d.id) }}">{{ d.name }}</a></td>
+      <td>{{ d.platform }}</td>
+      <td><span class="tier tier-{{ d.tier.value }}">{{ d.tier.value }}</span></td>
+      <td>
+        {% if d.enrolled %}<span class="badge ok">enrolled</span>
+        {% else %}<span class="badge pending">awaiting enrollment</span>{% endif %}
+      </td>
+      <td>{{ d.last_seen.strftime('%Y-%m-%d %H:%M') if d.last_seen else '—' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">No devices yet. Add one below to generate an enrollment token.</p>
+{% endif %}
+
+<section class="card">
+  <h2>Add a device</h2>
+  <form method="post" action="{{ request.url_for('add_device') }}" class="row">
+    <input type="text" name="name" placeholder="Device name" required>
+    <select name="platform">
+      <option value="android">Android</option>
+      <option value="windows">Windows</option>
+    </select>
+    <button type="submit">Create enrollment</button>
+  </form>
+</section>
+{% endblock %}
