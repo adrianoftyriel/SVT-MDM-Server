@@ -5,6 +5,7 @@ set -e
 # --- Add-on options ----------------------------------------------------------
 export MDM_ENROLLMENT_SECRET="$(bashio::config 'enrollment_secret')"
 export MDM_LOG_LEVEL="$(bashio::config 'log_level')"
+export MDM_MQTT_PUSH="$(bashio::config 'mqtt_push')"
 export MDM_DB_PATH="/data/mdm.db"
 export MDM_HTTP_PORT="8099"
 

@@ -34,6 +34,12 @@ class Settings:
     mqtt_password: str | None = os.getenv("MDM_MQTT_PASSWORD") or None
     mqtt_tls: bool = _bool(os.getenv("MDM_MQTT_TLS"), False)
 
+    # Push commands to devices over MQTT. Only useful when the broker is
+    # reachable *from the devices* (e.g. exposed with TLS). Off by default:
+    # devices then collect commands by polling over HTTPS, which works through
+    # the same reverse proxy used for the rest of the API.
+    mqtt_push: bool = _bool(os.getenv("MDM_MQTT_PUSH"), False)
+
     http_port: int = int(os.getenv("MDM_HTTP_PORT", "8099"))
     log_level: str = os.getenv("MDM_LOG_LEVEL", "info")
 

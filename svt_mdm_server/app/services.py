@@ -41,9 +41,12 @@ async def queue_command(
     session.commit()
     session.refresh(command)
 
-    # Best-effort instant delivery. If MQTT is down the command stays pending
-    # and the device will collect it on its next poll.
-    if await bridge.publish_command(device.id, command.envelope()):
+    # Best-effort instant delivery when MQTT push is enabled *and* the broker
+    # is reachable by the device. Otherwise the command stays pending and the
+    # device collects it on its next HTTPS poll (the default delivery path).
+    from app.config import settings
+
+    if settings.mqtt_push and await bridge.publish_command(device.id, command.envelope()):
         command.status = CommandStatus.sent
         command.sent_at = utcnow()
         session.commit()

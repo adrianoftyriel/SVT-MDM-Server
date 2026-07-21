@@ -1,5 +1,5 @@
 name: SVT MDM Server
-version: "0.1.1"
+version: "0.1.2"
 slug: svt_mdm_server
 description: Self-hosted MDM for Android (and later Windows) devices
 url: https://github.com/adrianoftyriel/svt-mdm-server
@@ -34,6 +34,8 @@ services:
 options:
   enrollment_secret: ""
   log_level: info
+  mqtt_push: false
 schema:
   enrollment_secret: "password?"
   log_level: "list(debug|info|warning|error)?"
+  mqtt_push: "bool?"

@@ -62,7 +62,9 @@ def enroll(body: EnrollRequest, session: Session = Depends(get_session)) -> Enro
         device_id=device.id,
         device_token=token,
         mqtt=MqttInfo(
-            host=settings.mqtt_host,
+            # Only advertise a broker when MQTT push is enabled; otherwise the
+            # agent skips MQTT and relies on HTTPS command polling.
+            host=settings.mqtt_host if settings.mqtt_push else None,
             port=settings.mqtt_port,
             tls=settings.mqtt_tls,
             username=device.id,
