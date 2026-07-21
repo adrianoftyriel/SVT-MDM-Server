@@ -55,9 +55,10 @@ See [`shared/protocol.md`](shared/protocol.md) for the full wire contract.
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt pytest httpx
+pip install -r svt_mdm_server/requirements.txt pytest httpx
 # Runs against ./mdm.db, no MQTT (polling-only), no auth on the dashboard.
-MDM_DB_PATH=./mdm.db uvicorn app.main:app --reload --port 8099
+PYTHONPATH=svt_mdm_server MDM_DB_PATH=./mdm.db \
+  uvicorn app.main:app --reload --port 8099
 # Dashboard: http://localhost:8099/   ·   Health: http://localhost:8099/health
 ```
 
@@ -79,16 +80,23 @@ pytest -q
 ## Repository layout
 
 ```
-addon/     Home Assistant add-on packaging (config.yaml, Dockerfile, run.sh)
-app/
-  api/       JSON API routers: enroll, telemetry, commands
-  models/    SQLAlchemy models: device, command, telemetry
-  mqtt/      MQTT bridge (command push + ack/status consumption)
-  web/       Dashboard (Jinja templates + static assets)
-  main.py    App entry, lifespan, ingress middleware
-shared/      protocol.md — the device↔server wire contract (source of truth)
-tests/       End-to-end smoke tests (no broker required)
+svt_mdm_server/          The Home Assistant add-on (self-contained build context)
+  config.yaml, build.yaml, Dockerfile, run.sh   Add-on packaging
+  requirements.txt
+  app/
+    api/       JSON API routers: enroll, telemetry, commands
+    models/    SQLAlchemy models: device, command, telemetry
+    mqtt/      MQTT bridge (command push + ack/status consumption)
+    web/       Dashboard (Jinja templates + static assets)
+    main.py    App entry, lifespan, ingress middleware
+repository.yaml          Add-on store repository descriptor
+shared/protocol.md       The device↔server wire contract (source of truth)
+tests/                   End-to-end smoke tests (no broker required)
 ```
+
+> **Note on the layout:** Home Assistant builds an add-on using its own folder
+> as the Docker build context, so everything the image needs lives inside
+> `svt_mdm_server/`. `tests/` and `shared/` stay at the repo root (dev-only).
 
 ## Roadmap
 

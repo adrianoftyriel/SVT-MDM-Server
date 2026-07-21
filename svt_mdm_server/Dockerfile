@@ -18,7 +18,7 @@ RUN pip3 install --no-cache-dir -r /app/requirements.txt
 COPY app /app/app
 
 # Add-on entrypoint.
-COPY addon/run.sh /run.sh
+COPY run.sh /run.sh
 RUN chmod a+x /run.sh
 
 CMD ["/run.sh"]

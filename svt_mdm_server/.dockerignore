@@ -1,11 +1,7 @@
-.git
-.venv
-venv
 __pycache__
+*.py[cod]
 *.db
 *.sqlite
-tests
-docs
 .pytest_cache
 .ruff_cache
 .mypy_cache
