@@ -4,11 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}SVT MDM{% endblock %}</title>
-  <link rel="stylesheet" href="{{ request.url_for('static', path='app.css') }}">
+  <link rel="stylesheet" href="{{ path_for(request, 'static', path='app.css') }}">
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="{{ request.url_for('index') }}">🔒 SVT MDM</a>
+    <a class="brand" href="{{ path_for(request, 'index') }}">🔒 SVT MDM</a>
   </header>
   <main class="container">
     {% block content %}{% endblock %}

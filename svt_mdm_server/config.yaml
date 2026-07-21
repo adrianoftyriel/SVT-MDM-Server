@@ -1,5 +1,5 @@
 name: SVT MDM Server
-version: "0.1.3"
+version: "0.1.4"
 slug: svt_mdm_server
 description: Self-hosted MDM for Android (and later Windows) devices
 url: https://github.com/adrianoftyriel/svt-mdm-server

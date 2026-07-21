@@ -29,12 +29,30 @@ from app.util import new_token
 TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "templates")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
+
+def _path_for(request: Request, name: str, **params) -> str:
+    """Build a host-relative URL that includes the ingress path prefix.
+
+    Absolute URLs (request.url_for) break under Home Assistant ingress: the app
+    can't know HA's external scheme/host. A host-relative path like
+    ``/api/hassio_ingress/<token>/devices/<id>`` is resolved by the browser
+    against the current ingress URL, which is correct.
+    """
+    root_path = request.scope.get("root_path", "")
+    return f"{root_path}{request.app.url_path_for(name, **params)}"
+
+
+# Expose to templates as `path_for(request, 'name', ...)`.
+templates.env.globals["path_for"] = _path_for
+
 router = APIRouter(tags=["dashboard"], include_in_schema=False)
 
 
 def _redirect(request: Request, name: str, **params) -> RedirectResponse:
-    url = request.url_for(name, **params)
-    return RedirectResponse(url=str(url), status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(
+        url=_path_for(request, name, **params),
+        status_code=status.HTTP_303_SEE_OTHER,
+    )
 
 
 @router.get("/", response_class=HTMLResponse, name="index")

@@ -11,7 +11,7 @@
   <tbody>
     {% for d in devices %}
     <tr>
-      <td><a href="{{ request.url_for('device_detail', device_id=d.id) }}">{{ d.name }}</a></td>
+      <td><a href="{{ path_for(request, 'device_detail', device_id=d.id) }}">{{ d.name }}</a></td>
       <td>{{ d.platform }}</td>
       <td><span class="tier tier-{{ d.tier.value }}">{{ d.tier.value }}</span></td>
       <td>
@@ -29,7 +29,7 @@
 
 <section class="card">
   <h2>Add a device</h2>
-  <form method="post" action="{{ request.url_for('add_device') }}" class="row">
+  <form method="post" action="{{ path_for(request, 'add_device') }}" class="row">
     <input type="text" name="name" placeholder="Device name" required>
     <select name="platform">
       <option value="android">Android</option>
