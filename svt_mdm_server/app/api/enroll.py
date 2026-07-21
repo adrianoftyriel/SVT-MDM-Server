@@ -10,6 +10,8 @@ Flow:
 
 from __future__ import annotations
 
+import secrets
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -18,6 +20,7 @@ from app.config import settings
 from app.db import get_session
 from app.models import Device
 from app.mqtt.bridge import topics_for
+from app.ratelimit import enroll_throttle
 from app.schemas import EnrollRequest, EnrollResponse, MqttInfo
 from app.services import derive_tier
 from app.util import hash_token, new_token, utcnow
@@ -27,7 +30,20 @@ router = APIRouter(tags=["enrollment"])
 
 @router.post("/enroll", response_model=EnrollResponse)
 def enroll(body: EnrollRequest, session: Session = Depends(get_session)) -> EnrollResponse:
-    if settings.enrollment_secret and body.enrollment_secret != settings.enrollment_secret:
+    # Global brute-force throttle on failed attempts (protects the secret).
+    retry_after = enroll_throttle.retry_after()
+    if retry_after is not None:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed enrollment attempts; try again later.",
+            headers={"Retry-After": str(int(retry_after) + 1)},
+        )
+
+    # Timing-safe secret comparison.
+    if settings.enrollment_secret and not secrets.compare_digest(
+        body.enrollment_secret or "", settings.enrollment_secret
+    ):
+        enroll_throttle.record_failure()
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid enrollment secret",
@@ -37,10 +53,14 @@ def enroll(body: EnrollRequest, session: Session = Depends(get_session)) -> Enro
         select(Device).where(Device.enroll_token == body.enroll_token)
     )
     if device is None:
+        enroll_throttle.record_failure()
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Unknown or already-used enrollment token",
         )
+
+    # Successful enrollment clears the failure counter.
+    enroll_throttle.reset()
 
     # Issue the long-lived device token (returned once, stored only as a hash).
     token = new_token()

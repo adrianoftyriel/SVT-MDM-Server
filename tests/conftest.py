@@ -30,5 +30,9 @@ def client():
     db.Base.metadata.drop_all(db.engine)
     db.Base.metadata.create_all(db.engine)
 
+    # Reset the shared enrollment throttle so tests don't interfere.
+    from app.ratelimit import enroll_throttle
+    enroll_throttle.reset()
+
     with TestClient(main.app) as c:
         yield c

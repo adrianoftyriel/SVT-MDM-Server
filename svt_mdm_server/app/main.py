@@ -85,6 +85,17 @@ async def restrict_dashboard_to_ingress(request: Request, call_next):
     return await call_next(request)
 
 
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    """Conservative response headers. Deliberately no X-Frame-Options/CSP that
+    would interfere with the Home Assistant ingress iframe."""
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("Cache-Control", "no-store")
+    return response
+
+
 @app.get("/health", include_in_schema=False)
 def health() -> dict:
     return {"status": "ok", "version": __version__, "mqtt": settings.mqtt_enabled}

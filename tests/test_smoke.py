@@ -117,3 +117,32 @@ def test_bad_token_rejected(client):
         "/api/commands/pending", headers={"Authorization": "Bearer nope"}
     )
     assert resp.status_code == 401
+
+
+def test_security_headers_present(client):
+    resp = client.get("/health")
+    assert resp.headers.get("X-Content-Type-Options") == "nosniff"
+    assert resp.headers.get("Referrer-Policy") == "no-referrer"
+
+
+def test_enrollment_throttle_blocks_brute_force(client):
+    # 20 bad-token attempts are allowed (404), the 21st is throttled (429).
+    for _ in range(20):
+        r = client.post("/api/enroll", json={"enroll_token": "nope"})
+        assert r.status_code == 404
+    r = client.post("/api/enroll", json={"enroll_token": "nope"})
+    assert r.status_code == 429
+    assert "Retry-After" in r.headers
+
+
+def test_dashboard_escapes_device_strings(client):
+    # A device name containing markup must be HTML-escaped on the dashboard,
+    # not rendered as live HTML (stored-XSS defense).
+    client.post(
+        "/devices",
+        data={"name": "<script>alert(1)</script>", "platform": "android"},
+        follow_redirects=False,
+    )
+    body = client.get("/").text
+    assert "<script>alert(1)</script>" not in body
+    assert "&lt;script&gt;" in body

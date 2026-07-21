@@ -32,7 +32,7 @@
 <section class="card">
   <h2>Commands</h2>
   <div class="commands">
-    {% for ct in ['locate', 'lock', 'wipe', 'refresh_inventory', 'refresh_usage'] %}
+    {% for ct in ['locate', 'lock', 'refresh_inventory', 'refresh_usage'] %}
     <form method="post" action="{{ path_for(request, 'issue_command', device_id=device.id) }}">
       <input type="hidden" name="command_type" value="{{ ct }}">
       <button type="submit" {% if not supported[ct] %}disabled title="Not supported on this tier"{% endif %}>{{ ct }}</button>
@@ -43,6 +43,11 @@
     <input type="hidden" name="command_type" value="set_password">
     <input type="text" name="password" placeholder="New lock password">
     <button type="submit" {% if not supported['set_password'] %}disabled title="Requires Device Owner"{% endif %}>set_password</button>
+  </form>
+  <form method="post" action="{{ path_for(request, 'issue_command', device_id=device.id) }}" class="row"
+        onsubmit="return confirm('Factory reset {{ device.name }}? This erases the device and cannot be undone.');">
+    <input type="hidden" name="command_type" value="wipe">
+    <button type="submit" class="danger-btn" {% if not supported['wipe'] %}disabled title="Requires Device Admin"{% endif %}>wipe (factory reset)</button>
   </form>
 </section>
 

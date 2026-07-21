@@ -45,6 +45,11 @@ def _path_for(request: Request, name: str, **params) -> str:
 # Expose to templates as `path_for(request, 'name', ...)`.
 templates.env.globals["path_for"] = _path_for
 
+# Defence in depth: device-reported strings (app labels, package names, model,
+# etc.) are rendered in the operator's authenticated dashboard, so force HTML
+# auto-escaping to prevent stored XSS from a malicious/compromised device.
+templates.env.autoescape = True
+
 router = APIRouter(tags=["dashboard"], include_in_schema=False)
 
 
