@@ -15,6 +15,14 @@ ingress_port: 8099
 panel_icon: mdi:cellphone-lock
 panel_title: SVT MDM
 
+# Publish the API port on the host so device agents can reach /api/* directly.
+# This is plain HTTP; terminate TLS with a reverse proxy before exposing it to
+# the internet (see README "Exposing the device API").
+ports:
+  8099/tcp: 8099
+ports_description:
+  8099/tcp: SVT MDM device API (enrollment + telemetry) — put TLS in front
+
 # Persist the SQLite database on the add-on data volume.
 # /data is provided automatically; nothing to map here.
 

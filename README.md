@@ -51,6 +51,25 @@ See [`shared/protocol.md`](shared/protocol.md) for the full wire contract.
 3. Set an **enrollment secret** in the add-on configuration.
 4. Start the add-on and open its panel (SVT MDM in the sidebar).
 
+## Exposing the device API
+
+The dashboard is served over Home Assistant **ingress** (HA-authenticated). The
+**device agents**, however, need to reach `/api/*` directly, so the add-on also
+**publishes port 8099 on the host**.
+
+That published port is **plain HTTP** — do not expose it to the internet as-is.
+Put TLS in front:
+
+- **Reverse proxy (recommended).** Terminate TLS at NGINX/Caddy/Traefik (or the
+  "NGINX Home Assistant SSL proxy" add-on) with a cert for your domain, and
+  proxy to `http://<ha-host>:8099`. Point agents at the `https://` proxy URL.
+- **Cloudflare Tunnel.** Expose `http://<ha-host>:8099` through a tunnel; agents
+  use the `https://` hostname Cloudflare provides. No router port-forward needed.
+
+For a quick LAN-only test you can point an agent at `http://<ha-host>:8099`
+directly, but the Android app blocks cleartext by default — see the agent repo's
+network-security note.
+
 ## Local development
 
 ```bash
