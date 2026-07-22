@@ -80,6 +80,21 @@
 </section>
 
 <section class="card">
+  <h2>Backup contents</h2>
+  <p class="muted">Which data this device backs up. App data isn't included — Android
+     doesn't allow reading other apps' private storage.</p>
+  <form method="post" action="{{ path_for(request, 'save_backup_config', device_id=device.id) }}">
+    {% for cat in backup_all_categories %}
+    <label style="display:block; padding:0.2rem 0;">
+      <input type="checkbox" name="{{ cat }}" {% if backup_categories[cat] %}checked{% endif %}>
+      {{ {'media':'Media (photos, video, audio, downloads)','contacts':'Contacts','sms':'SMS/MMS messages','calllog':'Call logs','calendar':'Calendar'}[cat] }}
+    </label>
+    {% endfor %}
+    <button type="submit">Save backup contents</button>
+  </form>
+</section>
+
+<section class="card">
   <h2>Location</h2>
   {% if latest_location %}
   <p>{{ '%.5f'|format(latest_location.lat) }}, {{ '%.5f'|format(latest_location.lon) }}

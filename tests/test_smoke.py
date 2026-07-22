@@ -287,6 +287,30 @@ def test_provisioning_payload_and_qr(client):
     assert client.get(f"/devices/{d.id}").status_code == 200
 
 
+def test_backup_config_defaults_and_save(client):
+    enroll_token = _create_device(client)
+    resp = client.post("/api/enroll", json={"enroll_token": enroll_token, "capabilities": {}})
+    device_id = resp.json()["device_id"]
+    auth = {"Authorization": f"Bearer {resp.json()['device_token']}"}
+
+    # Defaults preserve current behavior: media + contacts on, rest off.
+    cfg = client.get("/api/backup/config", headers=auth).json()["categories"]
+    assert cfg["media"] is True and cfg["contacts"] is True
+    assert cfg["sms"] is False and cfg["calllog"] is False and cfg["calendar"] is False
+
+    # Operator enables sms + calendar and turns contacts off.
+    r = client.post(
+        f"/devices/{device_id}/backup-config",
+        data={"media": "on", "sms": "on", "calendar": "on"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+
+    cfg2 = client.get("/api/backup/config", headers=auth).json()["categories"]
+    assert cfg2 == {"media": True, "contacts": False, "sms": True,
+                    "calllog": False, "calendar": True}
+
+
 def test_dashboard_escapes_device_strings(client):
     # A device name containing markup must be HTML-escaped on the dashboard,
     # not rendered as live HTML (stored-XSS defense).

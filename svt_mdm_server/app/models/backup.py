@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    JSON,
     BigInteger,
     DateTime,
     ForeignKey,
@@ -39,6 +40,18 @@ class BackupRun(Base):
     completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), default=None
     )
+
+
+class BackupConfig(Base):
+    """Per-device selection of which data categories to back up."""
+
+    __tablename__ = "backup_config"
+
+    device_id: Mapped[str] = mapped_column(
+        ForeignKey("devices.id", ondelete="CASCADE"), primary_key=True
+    )
+    # {"media": bool, "contacts": bool, "sms": bool, "calllog": bool, "calendar": bool}
+    categories: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
 class BackupObject(Base):

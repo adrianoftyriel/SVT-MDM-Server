@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 from app import storage
 from app.auth import authenticate_device
 from app.db import get_session
-from app.models import BackupObject, BackupRun, Device
+from app.models import BackupConfig, BackupObject, BackupRun, Device
 from app.schemas import (
     ManifestRequest,
     ManifestResponse,
@@ -28,6 +28,36 @@ from app.schemas import (
 from app.util import utcnow
 
 router = APIRouter(prefix="/backup", tags=["backup"])
+
+# Backup data categories and their defaults (current behavior: media+contacts).
+BACKUP_CATEGORIES = ["media", "contacts", "sms", "calllog", "calendar"]
+DEFAULT_CATEGORIES = {
+    "media": True,
+    "contacts": True,
+    "sms": False,
+    "calllog": False,
+    "calendar": False,
+}
+
+
+def resolve_categories(session: Session, device_id: str) -> dict:
+    """The effective category selection for a device (defaults if unset)."""
+    result = dict(DEFAULT_CATEGORIES)
+    cfg = session.get(BackupConfig, device_id)
+    if cfg and cfg.categories:
+        for key in BACKUP_CATEGORIES:
+            if key in cfg.categories:
+                result[key] = bool(cfg.categories[key])
+    return result
+
+
+@router.get("/config")
+def backup_config(
+    device: Device = Depends(authenticate_device),
+    session: Session = Depends(get_session),
+) -> dict:
+    """The categories this device should back up (agent reads this per run)."""
+    return {"categories": resolve_categories(session, device.id)}
 
 
 @router.post("/run", response_model=RunStartResponse)

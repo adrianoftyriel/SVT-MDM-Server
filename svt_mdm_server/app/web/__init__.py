@@ -16,10 +16,12 @@ from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
 from app import provisioning, storage
+from app.api.backup import BACKUP_CATEGORIES, resolve_categories
 from app.config import settings
 from app.db import get_session
 from app.models import (
     AppInventory,
+    BackupConfig,
     BackupObject,
     BackupRun,
     Command,
@@ -144,6 +146,7 @@ def device_detail(
         select(func.count(BackupObject.id), func.coalesce(func.sum(BackupObject.size), 0))
         .where(BackupObject.device_id == device_id)
     ).one()
+    backup_categories = resolve_categories(session, device_id)
 
     # Device Owner provisioning QR for a not-yet-enrolled device.
     provisioning_svg = None
@@ -183,9 +186,42 @@ def device_detail(
             "latest_backup_run": latest_backup_run,
             "backup_count": backup_count,
             "backup_bytes": backup_bytes,
+            "backup_categories": backup_categories,
+            "backup_all_categories": BACKUP_CATEGORIES,
             "provisioning_svg": provisioning_svg,
         },
     )
+
+
+@router.post("/devices/{device_id}/backup-config", name="save_backup_config")
+def save_backup_config(
+    request: Request,
+    device_id: str,
+    media: str = Form(None),
+    contacts: str = Form(None),
+    sms: str = Form(None),
+    calllog: str = Form(None),
+    calendar: str = Form(None),
+    session: Session = Depends(get_session),
+) -> RedirectResponse:
+    device = session.get(Device, device_id)
+    if device is None:
+        raise HTTPException(status_code=404, detail="Device not found")
+    # An unchecked checkbox is simply absent from the form submission.
+    values = {
+        "media": media is not None,
+        "contacts": contacts is not None,
+        "sms": sms is not None,
+        "calllog": calllog is not None,
+        "calendar": calendar is not None,
+    }
+    cfg = session.get(BackupConfig, device_id)
+    if cfg is None:
+        session.add(BackupConfig(device_id=device_id, categories=values))
+    else:
+        cfg.categories = values
+    session.commit()
+    return _redirect(request, "device_detail", device_id=device_id)
 
 
 @router.get("/devices/{device_id}/backups", response_class=HTMLResponse, name="backups_browse")
