@@ -29,6 +29,7 @@ COMMAND_TYPES = {
     "refresh_inventory",
     "refresh_usage",
     "backup_now",
+    "ring",
 }
 
 

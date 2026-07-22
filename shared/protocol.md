@@ -80,6 +80,12 @@ Per-type `payload`:
 | `wipe`             | `{ "confirm": true }`            |
 | `refresh_inventory`| `{}`                             |
 | `refresh_usage`    | `{ "days": 7 }`                  |
+| `ring`             | `{ "seconds": 30 }`              |
+
+`ring` plays a loud alarm-stream sound (ignores silent/vibrate) for the given
+duration. It needs no special privilege. Devices are also exposed to Home
+Assistant via MQTT discovery — a Ring button (plus Locate/Lock buttons and
+battery/last-seen/location sensors) that queues the matching command.
 
 ## Command ack
 

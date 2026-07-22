@@ -60,6 +60,9 @@ class Device(Base):
 
     def can(self, command_type: str) -> bool:
         """Whether this device's capabilities permit a given command type."""
+        # Ringing needs no special privilege — any enrolled device can do it.
+        if command_type == "ring":
+            return True
         caps = self.capabilities or {}
         required = {
             "locate": "location",

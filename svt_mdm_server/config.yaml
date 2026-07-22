@@ -1,5 +1,5 @@
 name: SVT MDM Server
-version: "0.2.0"
+version: "0.3.0"
 slug: svt_mdm_server
 description: Self-hosted MDM for Android (and later Windows) devices
 url: https://github.com/adrianoftyriel/svt-mdm-server
@@ -40,6 +40,7 @@ options:
   enrollment_secret: ""
   log_level: info
   mqtt_push: false
+  ha_discovery: true
   dashboard_allowed_ips: ""
   backup_dir: /share/svt-mdm-backups
   backup_encryption_key: ""
@@ -47,6 +48,8 @@ schema:
   enrollment_secret: "password?"
   log_level: "list(debug|info|warning|error)?"
   mqtt_push: "bool?"
+  # Expose devices to Home Assistant via MQTT discovery (Ring button etc.).
+  ha_discovery: "bool?"
   # Extra source IPs allowed to reach the dashboard, in addition to HA ingress.
   # Normally leave blank; the dashboard is meant to be used via the HA panel.
   dashboard_allowed_ips: "str?"

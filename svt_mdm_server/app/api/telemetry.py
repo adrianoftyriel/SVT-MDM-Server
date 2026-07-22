@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.auth import authenticate_device
 from app.db import get_session
 from app.models import AppInventory, Device, LocationPing, UsageSnapshot
+from app.mqtt.bridge import bridge
 from app.schemas import (
     CheckinRequest,
     InventoryRequest,
@@ -41,6 +42,7 @@ def checkin(
     if body.model:
         device.model = body.model
     _touch(session, device)
+    bridge.publish_device_state(device)
     return {"ok": True, "tier": device.tier.value}
 
 
@@ -60,6 +62,7 @@ def location(
         )
     )
     _touch(session, device)
+    bridge.publish_device_location(device.id, body.lat, body.lon, body.accuracy_m)
     return {"ok": True}
 
 

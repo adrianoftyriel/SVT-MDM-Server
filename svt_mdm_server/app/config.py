@@ -40,6 +40,10 @@ class Settings:
     # the same reverse proxy used for the rest of the API.
     mqtt_push: bool = _bool(os.getenv("MDM_MQTT_PUSH"), False)
 
+    # Expose enrolled devices to Home Assistant via MQTT discovery (Ring button,
+    # sensors, etc.). Requires the MQTT broker; harmless when it's absent.
+    ha_discovery: bool = _bool(os.getenv("MDM_HA_DISCOVERY"), True)
+
     http_port: int = int(os.getenv("MDM_HTTP_PORT", "8099"))
     log_level: str = os.getenv("MDM_LOG_LEVEL", "info")
 

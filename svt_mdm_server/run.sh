@@ -6,6 +6,7 @@ set -e
 export MDM_ENROLLMENT_SECRET="$(bashio::config 'enrollment_secret')"
 export MDM_LOG_LEVEL="$(bashio::config 'log_level')"
 export MDM_MQTT_PUSH="$(bashio::config 'mqtt_push')"
+export MDM_HA_DISCOVERY="$(bashio::config 'ha_discovery')"
 export MDM_DASHBOARD_ALLOWED_IPS="$(bashio::config 'dashboard_allowed_ips')"
 export MDM_BACKUP_DIR="$(bashio::config 'backup_dir')"
 export MDM_BACKUP_KEY="$(bashio::config 'backup_encryption_key')"

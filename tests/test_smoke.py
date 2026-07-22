@@ -207,6 +207,53 @@ def test_backup_flow(client):
     assert bad.status_code == 400
 
 
+def test_ring_command_needs_no_capability(client):
+    # A plain device (no capabilities) can still be rung.
+    enroll_token = _create_device(client)
+    device_id = client.post(
+        "/api/enroll", json={"enroll_token": enroll_token, "capabilities": {}}
+    ).json()["device_id"]
+
+    resp = client.post(
+        f"/devices/{device_id}/commands",
+        data={"command_type": "ring"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+
+
+def test_ha_discovery_and_button_enqueue(client):
+    from app import hadiscovery
+    from app.mqtt.bridge import bridge
+    from sqlalchemy import select
+
+    import app.db as db
+    from app.models import Command, Device
+
+    enroll_token = _create_device(client)
+    device_id = client.post(
+        "/api/enroll", json={"enroll_token": enroll_token, "capabilities": {}}
+    ).json()["device_id"]
+
+    with db.SessionLocal() as s:
+        device = s.get(Device, device_id)
+        msgs = dict(hadiscovery.discovery_messages(device))
+    ring_cfg = msgs[f"homeassistant/button/svtmdm_{device_id}_ring/config"]
+    assert ring_cfg["command_topic"] == f"mdm/{device_id}/ha/ring"
+
+    # A Home Assistant button press queues the command...
+    bridge._enqueue_from_ha(device_id, "ring")
+    with db.SessionLocal() as s:
+        cmds = list(s.scalars(select(Command).where(Command.device_id == device_id)))
+    assert [c.type for c in cmds] == ["ring"]
+
+    # ...but a disallowed command is ignored.
+    bridge._enqueue_from_ha(device_id, "wipe")
+    with db.SessionLocal() as s:
+        types = [c.type for c in s.scalars(select(Command).where(Command.device_id == device_id))]
+    assert "wipe" not in types
+
+
 def test_dashboard_escapes_device_strings(client):
     # A device name containing markup must be HTML-escaped on the dashboard,
     # not rendered as live HTML (stored-XSS defense).

@@ -35,6 +35,7 @@ def topics_for(device_id: str) -> dict[str, str]:
 class MqttBridge:
     def __init__(self) -> None:
         self._client = None  # aiomqtt.Client when connected
+        self._loop = None  # event loop, for threadsafe publishing from sync handlers
         self._ready = asyncio.Event()
         self._stop = asyncio.Event()
 
@@ -51,6 +52,7 @@ class MqttBridge:
 
         import aiomqtt
 
+        self._loop = asyncio.get_running_loop()
         tls_context = ssl.create_default_context() if settings.mqtt_tls else None
         backoff = 1
         while not self._stop.is_set():
@@ -70,6 +72,8 @@ class MqttBridge:
                              settings.mqtt_port)
                     await client.subscribe(f"{TOPIC_PREFIX}/+/ack")
                     await client.subscribe(f"{TOPIC_PREFIX}/+/status")
+                    await client.subscribe(f"{TOPIC_PREFIX}/+/ha/+")
+                    await self._announce_all()
                     async for message in client.messages:
                         await self._handle(str(message.topic), message.payload)
             except asyncio.CancelledError:
@@ -105,9 +109,16 @@ class MqttBridge:
 
     async def _handle(self, topic: str, payload: bytes) -> None:
         parts = topic.split("/")
-        if len(parts) != 3:
+        if len(parts) < 3:
             return
-        _, device_id, kind = parts
+        device_id, kind = parts[1], parts[2]
+
+        # Home Assistant button press: mdm/<id>/ha/<command>. Payload is the
+        # button's press token, not JSON.
+        if kind == "ha" and len(parts) >= 4:
+            await asyncio.to_thread(self._enqueue_from_ha, device_id, parts[3])
+            return
+
         try:
             data = json.loads(payload.decode() or "{}")
         except (ValueError, UnicodeDecodeError):
@@ -150,6 +161,95 @@ class MqttBridge:
                 return
             device.last_seen = utcnow()
             session.commit()
+
+    def _enqueue_from_ha(self, device_id: str, ha_command: str) -> None:
+        """Queue a command for a device in response to a Home Assistant button.
+
+        Only safe commands are accepted; the device collects it on its next
+        poll. Done synchronously (no MQTT publish) since command delivery is
+        HTTPS-poll based by default.
+        """
+        from app.hadiscovery import HA_ALLOWED_COMMANDS
+        from app.db import SessionLocal
+        from app.models import Command, Device
+
+        if ha_command not in HA_ALLOWED_COMMANDS:
+            log.warning("Ignoring disallowed HA command '%s'", ha_command)
+            return
+        with SessionLocal() as session:
+            device = session.get(Device, device_id)
+            if device is None or not device.enrolled or not device.can(ha_command):
+                return
+            session.add(Command(device_id=device_id, type=ha_command))
+            session.commit()
+            log.info("HA queued '%s' for device %s", ha_command, device_id)
+
+    # -- Home Assistant discovery / state -------------------------------------
+
+    def publish_threadsafe(self, topic: str, payload: dict, retain: bool = False) -> None:
+        """Publish JSON from a synchronous context (e.g. an HTTP handler)."""
+        client, loop = self._client, self._loop
+        if client is None or loop is None or not settings.ha_discovery:
+            return
+        data = json.dumps(payload).encode()
+
+        async def _pub():
+            try:
+                await client.publish(topic, data, qos=0, retain=retain)
+            except Exception as exc:  # noqa: BLE001
+                log.debug("HA publish to %s failed: %s", topic, exc)
+
+        try:
+            asyncio.run_coroutine_threadsafe(_pub(), loop)
+        except RuntimeError:
+            pass
+
+    async def _announce_all(self) -> None:
+        if not settings.ha_discovery:
+            return
+        await asyncio.to_thread(self._announce_all_sync)
+
+    def _announce_all_sync(self) -> None:
+        from app.db import SessionLocal
+        from app.models import Device
+        from sqlalchemy import select
+
+        with SessionLocal() as session:
+            for device in session.scalars(select(Device).where(Device.enrolled.is_(True))):
+                self._announce_device_sync(device)
+
+    def announce_device(self, device) -> None:
+        """Publish HA discovery + current state for one device (thread-safe)."""
+        if not settings.ha_discovery:
+            return
+        self._announce_device_sync(device)
+
+    def _announce_device_sync(self, device) -> None:
+        from app import hadiscovery
+
+        for topic, payload in hadiscovery.discovery_messages(device):
+            self.publish_threadsafe(topic, payload, retain=True)
+        self.publish_threadsafe(
+            hadiscovery.state_topic(device.id), hadiscovery.state_payload(device),
+            retain=True,
+        )
+
+    def publish_device_state(self, device) -> None:
+        from app import hadiscovery
+
+        self.publish_threadsafe(
+            hadiscovery.state_topic(device.id), hadiscovery.state_payload(device),
+            retain=True,
+        )
+
+    def publish_device_location(self, device_id: str, lat, lon, accuracy) -> None:
+        from app import hadiscovery
+
+        self.publish_threadsafe(
+            hadiscovery.location_topic(device_id),
+            {"latitude": lat, "longitude": lon, "gps_accuracy": accuracy},
+            retain=True,
+        )
 
 
 # Module-level singleton wired up in app.main's lifespan.

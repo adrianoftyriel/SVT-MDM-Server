@@ -147,6 +147,7 @@ def device_detail(
     # Which command buttons to enable, based on capabilities.
     command_types = [
         "locate",
+        "ring",
         "lock",
         "set_password",
         "wipe",

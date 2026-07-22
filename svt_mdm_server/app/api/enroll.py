@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db import get_session
 from app.models import Device
-from app.mqtt.bridge import topics_for
+from app.mqtt.bridge import bridge, topics_for
 from app.ratelimit import enroll_throttle
 from app.schemas import EnrollRequest, EnrollResponse, MqttInfo
 from app.services import derive_tier
@@ -76,6 +76,9 @@ def enroll(body: EnrollRequest, session: Session = Depends(get_session)) -> Enro
     device.os_version = body.os_version
     device.last_seen = utcnow()
     session.commit()
+
+    # Expose the newly enrolled device to Home Assistant.
+    bridge.announce_device(device)
 
     topics = topics_for(device.id)
     return EnrollResponse(
