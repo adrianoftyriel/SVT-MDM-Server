@@ -43,6 +43,9 @@ class Settings:
     http_port: int = int(os.getenv("MDM_HTTP_PORT", "8099"))
     log_level: str = os.getenv("MDM_LOG_LEVEL", "info")
 
+    # Where encrypted device backups are stored (mapped host folder).
+    backup_dir: str = os.getenv("MDM_BACKUP_DIR", "/share/svt-mdm-backups")
+
     @property
     def db_url(self) -> str:
         return f"sqlite+pysqlite:///{self.db_path}"

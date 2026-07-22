@@ -14,6 +14,7 @@ import tempfile
 _tmp_dir = tempfile.mkdtemp(prefix="mdm-test-")
 os.environ["MDM_DB_PATH"] = os.path.join(_tmp_dir, "test.db")
 os.environ["MDM_ENROLLMENT_SECRET"] = ""
+os.environ["MDM_BACKUP_DIR"] = os.path.join(_tmp_dir, "backups")
 os.environ.pop("MDM_MQTT_HOST", None)
 
 import pytest  # noqa: E402

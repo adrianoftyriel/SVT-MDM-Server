@@ -120,6 +120,23 @@ Per-type `payload`:
 }
 ```
 
+## Backups
+
+Files are content-addressed by the SHA-256 of their plaintext and deduped per
+device. The server encrypts blobs at rest; transport is protected by TLS.
+
+Per run:
+1. `POST /api/backup/run` → `{ "run_id": "..." }`
+2. `POST /api/backup/manifest` with `{ "files": [ {sha256, size, rel_path, category, mtime} ] }`
+   → `{ "missing": ["sha256", ...] }` (only these need uploading)
+3. `PUT /api/backup/object/{sha256}?path=<rel_path>&category=<cat>` with the raw
+   plaintext body → `{ "stored": bool, "deduped": bool, "size": int }`.
+   The server verifies the received bytes hash to `{sha256}` (else 400).
+4. `POST /api/backup/run/{run_id}/complete` with `{ file_count, total_bytes, status }`
+
+`category` is a free-form tag: `media | document | contacts | file`.
+The `backup_now` command triggers a run; it requires the `backup` capability.
+
 ### Device check-in — `POST /api/telemetry/checkin`
 ```json
 {

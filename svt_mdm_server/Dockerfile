@@ -2,7 +2,9 @@ ARG BUILD_FROM
 FROM ${BUILD_FROM}
 
 # Alpine-based HA base image. bashio is already available.
-RUN apk add --no-cache python3 py3-pip
+# py3-cryptography comes prebuilt from Alpine, avoiding a slow/failing source
+# build of `cryptography` on musl/armv7 during pip install.
+RUN apk add --no-cache python3 py3-pip py3-cryptography
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \

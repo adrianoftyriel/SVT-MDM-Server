@@ -28,6 +28,7 @@ COMMAND_TYPES = {
     "wipe",
     "refresh_inventory",
     "refresh_usage",
+    "backup_now",
 }
 
 

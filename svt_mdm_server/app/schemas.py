@@ -91,3 +91,31 @@ class CommandAck(BaseModel):
     status: str  # "acked" | "failed"
     detail: str | None = None
     completed_at: datetime | None = None
+
+
+# --- Backups ------------------------------------------------------------------
+
+class BackupFileMeta(BaseModel):
+    sha256: str
+    size: int = 0
+    rel_path: str
+    category: str = "file"
+    mtime: datetime | None = None
+
+
+class ManifestRequest(BaseModel):
+    files: list[BackupFileMeta] = Field(default_factory=list)
+
+
+class ManifestResponse(BaseModel):
+    missing: list[str] = Field(default_factory=list)  # sha256 the server still needs
+
+
+class RunStartResponse(BaseModel):
+    run_id: str
+
+
+class RunCompleteRequest(BaseModel):
+    file_count: int = 0
+    total_bytes: int = 0
+    status: str = "complete"  # "complete" | "failed"

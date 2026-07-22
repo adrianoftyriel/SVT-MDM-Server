@@ -135,6 +135,78 @@ def test_enrollment_throttle_blocks_brute_force(client):
     assert "Retry-After" in r.headers
 
 
+def test_backup_flow(client):
+    import hashlib
+
+    from sqlalchemy import select
+
+    import app.db as db
+    from app.models import BackupObject
+
+    # Enroll a device.
+    enroll_token = _create_device(client)
+    token = client.post(
+        "/api/enroll",
+        json={"enroll_token": enroll_token, "capabilities": {"backup": True}},
+    ).json()["device_token"]
+    auth = {"Authorization": f"Bearer {token}"}
+
+    # A multi-chunk payload (>256 KiB) to exercise chunked AES-GCM.
+    content = b"svt-backup-" * 70_000
+    sha = hashlib.sha256(content).hexdigest()
+
+    # Start a run.
+    run_id = client.post("/api/backup/run", headers=auth).json()["run_id"]
+
+    # Manifest: the file is missing.
+    missing = client.post(
+        "/api/backup/manifest",
+        json={"files": [{"sha256": sha, "size": len(content), "rel_path": "DCIM/a.jpg",
+                         "category": "media"}]},
+        headers=auth,
+    ).json()["missing"]
+    assert missing == [sha]
+
+    # Upload it.
+    up = client.put(
+        f"/api/backup/object/{sha}?path=DCIM/a.jpg&category=media",
+        content=content,
+        headers=auth,
+    )
+    assert up.status_code == 200, up.text
+    assert up.json()["stored"] is True
+
+    # Now the manifest reports nothing missing (deduped).
+    missing2 = client.post(
+        "/api/backup/manifest",
+        json={"files": [{"sha256": sha, "size": len(content), "rel_path": "DCIM/a.jpg"}]},
+        headers=auth,
+    ).json()["missing"]
+    assert missing2 == []
+
+    client.post(
+        f"/api/backup/run/{run_id}/complete",
+        json={"file_count": 1, "total_bytes": len(content), "status": "complete"},
+        headers=auth,
+    )
+
+    # Download via the dashboard and confirm decryption round-trips exactly.
+    with db.SessionLocal() as s:
+        obj = s.scalar(select(BackupObject))
+        device_id, object_id = obj.device_id, obj.id
+    dl = client.get(f"/devices/{device_id}/backups/{object_id}/download")
+    assert dl.status_code == 200
+    assert dl.content == content
+
+    # A corrupted upload (wrong sha) is rejected.
+    bad = client.put(
+        "/api/backup/object/" + "0" * 64 + "?path=x&category=media",
+        content=b"nope",
+        headers=auth,
+    )
+    assert bad.status_code == 400
+
+
 def test_dashboard_escapes_device_strings(client):
     # A device name containing markup must be HTML-escaped on the dashboard,
     # not rendered as live HTML (stored-XSS defense).

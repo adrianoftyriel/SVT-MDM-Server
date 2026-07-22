@@ -68,6 +68,7 @@ class Device(Base):
             "set_password": "device_owner",
             "refresh_inventory": "query_all_packages",
             "refresh_usage": "usage_access",
+            "backup_now": "backup",
         }.get(command_type)
         if required is None:
             return False

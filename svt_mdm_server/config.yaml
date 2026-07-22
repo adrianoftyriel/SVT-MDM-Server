@@ -1,5 +1,5 @@
 name: SVT MDM Server
-version: "0.1.5"
+version: "0.2.0"
 slug: svt_mdm_server
 description: Self-hosted MDM for Android (and later Windows) devices
 url: https://github.com/adrianoftyriel/svt-mdm-server
@@ -31,11 +31,18 @@ ports_description:
 services:
   - mqtt:need
 
+# Access the shared folder so backups can be written outside the add-on's
+# own data volume (which is small). Default backup_dir lives here.
+map:
+  - share:rw
+
 options:
   enrollment_secret: ""
   log_level: info
   mqtt_push: false
   dashboard_allowed_ips: ""
+  backup_dir: /share/svt-mdm-backups
+  backup_encryption_key: ""
 schema:
   enrollment_secret: "password?"
   log_level: "list(debug|info|warning|error)?"
@@ -43,3 +50,7 @@ schema:
   # Extra source IPs allowed to reach the dashboard, in addition to HA ingress.
   # Normally leave blank; the dashboard is meant to be used via the HA panel.
   dashboard_allowed_ips: "str?"
+  # Where encrypted backups are stored, and the at-rest key (passphrase).
+  # Leave the key blank to auto-generate and persist one in the add-on data.
+  backup_dir: "str?"
+  backup_encryption_key: "password?"

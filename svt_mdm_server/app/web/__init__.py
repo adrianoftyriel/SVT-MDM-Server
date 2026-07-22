@@ -10,14 +10,17 @@ from __future__ import annotations
 import os
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import desc, select
+from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
+from app import storage
 from app.db import get_session
 from app.models import (
     AppInventory,
+    BackupObject,
+    BackupRun,
     Command,
     Device,
     LocationPing,
@@ -130,6 +133,17 @@ def device_detail(
                 }
             )
 
+    # Backup summary.
+    latest_backup_run = session.scalar(
+        select(BackupRun)
+        .where(BackupRun.device_id == device_id)
+        .order_by(desc(BackupRun.started_at))
+    )
+    backup_count, backup_bytes = session.execute(
+        select(func.count(BackupObject.id), func.coalesce(func.sum(BackupObject.size), 0))
+        .where(BackupObject.device_id == device_id)
+    ).one()
+
     # Which command buttons to enable, based on capabilities.
     command_types = [
         "locate",
@@ -138,6 +152,7 @@ def device_detail(
         "wipe",
         "refresh_inventory",
         "refresh_usage",
+        "backup_now",
     ]
     supported = {ct: device.can(ct) for ct in command_types}
 
@@ -151,7 +166,55 @@ def device_detail(
             "usage_bars": usage_bars,
             "recent_commands": recent_commands,
             "supported": supported,
+            "latest_backup_run": latest_backup_run,
+            "backup_count": backup_count,
+            "backup_bytes": backup_bytes,
         },
+    )
+
+
+@router.get("/devices/{device_id}/backups", response_class=HTMLResponse, name="backups_browse")
+def backups_browse(
+    request: Request, device_id: str, session: Session = Depends(get_session)
+) -> HTMLResponse:
+    device = session.get(Device, device_id)
+    if device is None:
+        raise HTTPException(status_code=404, detail="Device not found")
+    objects = list(
+        session.scalars(
+            select(BackupObject)
+            .where(BackupObject.device_id == device_id)
+            .order_by(desc(BackupObject.last_seen))
+            .limit(500)
+        )
+    )
+    runs = list(
+        session.scalars(
+            select(BackupRun)
+            .where(BackupRun.device_id == device_id)
+            .order_by(desc(BackupRun.started_at))
+            .limit(10)
+        )
+    )
+    return templates.TemplateResponse(
+        request,
+        "backups.html",
+        {"device": device, "objects": objects, "runs": runs},
+    )
+
+
+@router.get("/devices/{device_id}/backups/{object_id}/download", name="backup_download")
+def backup_download(
+    device_id: str, object_id: str, session: Session = Depends(get_session)
+) -> StreamingResponse:
+    obj = session.get(BackupObject, object_id)
+    if obj is None or obj.device_id != device_id:
+        raise HTTPException(status_code=404, detail="Backup object not found")
+    filename = os.path.basename(obj.rel_path) or f"{obj.sha256}.bin"
+    return StreamingResponse(
+        storage.open_decrypted(device_id, obj.sha256),
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 

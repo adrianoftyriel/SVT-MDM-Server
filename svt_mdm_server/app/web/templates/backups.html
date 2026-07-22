@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Backups · {{ device.name }} · SVT MDM{% endblock %}
+{% block content %}
+<p><a href="{{ path_for(request, 'device_detail', device_id=device.id) }}">← {{ device.name }}</a></p>
+<h1>Backups <span class="muted">· {{ device.name }}</span></h1>
+
+<section class="card">
+  <h2>Recent runs</h2>
+  {% if runs %}
+  <table>
+    <thead><tr><th>Started</th><th>Status</th><th>Files</th><th>Size</th></tr></thead>
+    <tbody>
+      {% for r in runs %}
+      <tr>
+        <td>{{ r.started_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td><span class="badge {{ 'acked' if r.status == 'complete' else r.status }}">{{ r.status }}</span></td>
+        <td>{{ r.file_count }}</td>
+        <td>{{ (r.total_bytes / 1048576) | round(1) }} MB</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No backup runs recorded.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Files {% if objects %}<span class="muted">(showing up to 500)</span>{% endif %}</h2>
+  {% if objects %}
+  <table>
+    <thead><tr><th>Path</th><th>Category</th><th>Size</th><th>Backed up</th><th></th></tr></thead>
+    <tbody>
+      {% for o in objects %}
+      <tr>
+        <td>{{ o.rel_path }}</td>
+        <td>{{ o.category }}</td>
+        <td>{{ (o.size / 1048576) | round(2) }} MB</td>
+        <td>{{ o.last_seen.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td><a href="{{ path_for(request, 'backup_download', device_id=device.id, object_id=o.id) }}">download</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No files backed up yet.</p>
+  {% endif %}
+</section>
+{% endblock %}
