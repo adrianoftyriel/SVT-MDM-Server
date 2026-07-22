@@ -93,6 +93,9 @@ pre { background: var(--panel-2); padding: 0.75rem; border-radius: 6px; overflow
 .bar-fill { display: block; height: 100%; background: var(--accent); }
 .bar-value { font-size: 0.85rem; color: var(--muted); text-align: right; }
 
+.qr { background: #fff; padding: 0.75rem; border-radius: 8px; display: inline-block; max-width: 320px; }
+.qr svg { width: 100%; height: auto; display: block; }
+
 .apps { columns: 2; list-style: none; padding: 0; }
 .apps li { break-inside: avoid; padding: 0.15rem 0; }
 

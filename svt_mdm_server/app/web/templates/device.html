@@ -11,6 +11,16 @@
   <h2>Enrollment pending</h2>
   <p>Enter this one-time token in the agent to enroll:</p>
   <p class="token">{{ device.enroll_token }}</p>
+  {% if provisioning_svg %}
+  <h3>Device Owner provisioning</h3>
+  <p class="muted">On a factory-reset phone, tap the first setup screen 6 times to
+     open the QR scanner, then scan this to install the agent as Device Owner and
+     auto-enroll. (Full control: set password, silent grants.)</p>
+  <div class="qr">{{ provisioning_svg | safe }}</div>
+  {% else %}
+  <p class="muted">Set <code>external_url</code> in the add-on config to show a
+     Device Owner provisioning QR here.</p>
+  {% endif %}
 </section>
 {% endif %}
 

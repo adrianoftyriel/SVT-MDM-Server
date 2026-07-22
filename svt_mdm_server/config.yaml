@@ -1,5 +1,5 @@
 name: SVT MDM Server
-version: "0.3.0"
+version: "0.4.0"
 slug: svt_mdm_server
 description: Self-hosted MDM for Android (and later Windows) devices
 url: https://github.com/adrianoftyriel/svt-mdm-server
@@ -44,6 +44,8 @@ options:
   dashboard_allowed_ips: ""
   backup_dir: /share/svt-mdm-backups
   backup_encryption_key: ""
+  external_url: ""
+  apk_url: ""
 schema:
   enrollment_secret: "password?"
   log_level: "list(debug|info|warning|error)?"
@@ -57,3 +59,6 @@ schema:
   # Leave the key blank to auto-generate and persist one in the add-on data.
   backup_dir: "str?"
   backup_encryption_key: "password?"
+  # Device-facing https base URL and APK URL for Device Owner QR provisioning.
+  external_url: "str?"
+  apk_url: "str?"

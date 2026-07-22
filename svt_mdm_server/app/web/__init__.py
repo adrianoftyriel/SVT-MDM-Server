@@ -15,7 +15,8 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
-from app import storage
+from app import provisioning, storage
+from app.config import settings
 from app.db import get_session
 from app.models import (
     AppInventory,
@@ -144,6 +145,18 @@ def device_detail(
         .where(BackupObject.device_id == device_id)
     ).one()
 
+    # Device Owner provisioning QR for a not-yet-enrolled device.
+    provisioning_svg = None
+    if not device.enrolled and device.enroll_token and settings.external_url:
+        payload = provisioning.provisioning_payload(
+            apk_url=settings.apk_url,
+            signature_checksum=settings.do_signature_checksum,
+            server_url=settings.external_url,
+            enroll_token=device.enroll_token,
+            enrollment_secret=settings.enrollment_secret,
+        )
+        provisioning_svg = provisioning.qr_svg(payload)
+
     # Which command buttons to enable, based on capabilities.
     command_types = [
         "locate",
@@ -170,6 +183,7 @@ def device_detail(
             "latest_backup_run": latest_backup_run,
             "backup_count": backup_count,
             "backup_bytes": backup_bytes,
+            "provisioning_svg": provisioning_svg,
         },
     )
 

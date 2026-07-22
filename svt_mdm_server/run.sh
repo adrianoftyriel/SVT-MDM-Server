@@ -10,6 +10,8 @@ export MDM_HA_DISCOVERY="$(bashio::config 'ha_discovery')"
 export MDM_DASHBOARD_ALLOWED_IPS="$(bashio::config 'dashboard_allowed_ips')"
 export MDM_BACKUP_DIR="$(bashio::config 'backup_dir')"
 export MDM_BACKUP_KEY="$(bashio::config 'backup_encryption_key')"
+export MDM_EXTERNAL_URL="$(bashio::config 'external_url')"
+export MDM_APK_URL="$(bashio::config 'apk_url')"
 export MDM_DB_PATH="/data/mdm.db"
 export MDM_HTTP_PORT="8099"
 

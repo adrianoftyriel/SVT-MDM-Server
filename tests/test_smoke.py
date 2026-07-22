@@ -254,6 +254,39 @@ def test_ha_discovery_and_button_enqueue(client):
     assert "wipe" not in types
 
 
+def test_provisioning_payload_and_qr(client):
+    from app import provisioning
+
+    payload = provisioning.provisioning_payload(
+        apk_url="https://example/app.apk",
+        signature_checksum="CHK",
+        server_url="https://mdm.example",
+        enroll_token="tok123",
+        enrollment_secret="s3cret",
+    )
+    assert payload[
+        "android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM"
+    ] == "CHK"
+    bundle = payload["android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE"]
+    assert bundle["enroll_token"] == "tok123"
+    assert bundle["server_url"] == "https://mdm.example"
+
+    svg = provisioning.qr_svg(payload)
+    assert "<svg" in svg
+
+    # A pending device's page renders without a provisioning URL configured.
+    from sqlalchemy import select
+
+    import app.db as db
+    from app.models import Device
+
+    client.post("/devices", data={"name": "New", "platform": "android"},
+                follow_redirects=False)
+    with db.SessionLocal() as s:
+        d = s.scalar(select(Device).where(Device.name == "New"))
+    assert client.get(f"/devices/{d.id}").status_code == 200
+
+
 def test_dashboard_escapes_device_strings(client):
     # A device name containing markup must be HTML-escaped on the dashboard,
     # not rendered as live HTML (stored-XSS defense).

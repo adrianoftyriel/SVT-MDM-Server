@@ -50,6 +50,19 @@ class Settings:
     # Where encrypted device backups are stored (mapped host folder).
     backup_dir: str = os.getenv("MDM_BACKUP_DIR", "/share/svt-mdm-backups")
 
+    # Device Owner QR provisioning. external_url is the https base URL devices
+    # reach the server at (embedded in the QR). apk_url must be reachable by a
+    # phone during setup. do_signature_checksum is the base64url SHA-256 of the
+    # APK signing certificate.
+    external_url: str = os.getenv("MDM_EXTERNAL_URL", "")
+    # `or default` (not getenv default) so an empty add-on option falls back.
+    apk_url: str = os.getenv("MDM_APK_URL") or (
+        "https://github.com/adrianoftyriel/svt-mdm-android/releases/latest/download/svt-mdm-latest.apk"
+    )
+    do_signature_checksum: str = (
+        os.getenv("MDM_DO_CHECKSUM") or "QGFnYMwe0rezuujokGa9CLb6pJXweG47KqQg6r81ctg"
+    )
+
     @property
     def db_url(self) -> str:
         return f"sqlite+pysqlite:///{self.db_path}"
