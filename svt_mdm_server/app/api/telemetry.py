@@ -9,6 +9,7 @@ from app.auth import authenticate_device
 from app.db import get_session
 from app.models import AppInventory, Device, LocationPing, UsageSnapshot
 from app.mqtt.bridge import bridge
+from app.prefs import get_active_theme_id
 from app.schemas import (
     CheckinRequest,
     InventoryRequest,
@@ -43,7 +44,11 @@ def checkin(
         device.model = body.model
     _touch(session, device)
     bridge.publish_device_state(device)
-    return {"ok": True, "tier": device.tier.value}
+    return {
+        "ok": True,
+        "tier": device.tier.value,
+        "theme": get_active_theme_id(session),
+    }
 
 
 @router.post("/location")

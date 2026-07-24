@@ -15,10 +15,10 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
-from app import provisioning, storage
+from app import prefs, provisioning, storage, themes
 from app.api.backup import BACKUP_CATEGORIES, resolve_categories
 from app.config import settings
-from app.db import get_session
+from app.db import SessionLocal, get_session
 from app.models import (
     AppInventory,
     BackupConfig,
@@ -50,6 +50,20 @@ def _path_for(request: Request, name: str, **params) -> str:
 
 # Expose to templates as `path_for(request, 'name', ...)`.
 templates.env.globals["path_for"] = _path_for
+
+
+def _active_theme() -> themes.Theme:
+    """The operator-selected theme, resolved for use in templates.
+
+    Runs outside request scope (called from base.html), so it uses its own
+    short-lived session rather than the request-scoped dependency.
+    """
+    with SessionLocal() as session:
+        return themes.get_theme(prefs.get_active_theme_id(session))
+
+
+# Expose to every template (base.html injects the theme's CSS variables).
+templates.env.globals["active_theme"] = _active_theme
 
 # Defence in depth: device-reported strings (app labels, package names, model,
 # etc.) are rendered in the operator's authenticated dashboard, so force HTML
@@ -304,3 +318,27 @@ def delete_device(
         session.delete(device)
         session.commit()
     return _redirect(request, "index")
+
+
+@router.get("/settings", response_class=HTMLResponse, name="settings_page")
+def settings_page(
+    request: Request, session: Session = Depends(get_session)
+) -> HTMLResponse:
+    return templates.TemplateResponse(
+        request,
+        "settings.html",
+        {
+            "all_themes": themes.all_themes(),
+            "active_theme_id": prefs.get_active_theme_id(session),
+        },
+    )
+
+
+@router.post("/settings/theme", name="save_theme")
+def save_theme(
+    request: Request,
+    theme: str = Form(...),
+    session: Session = Depends(get_session),
+) -> RedirectResponse:
+    prefs.set_active_theme_id(session, theme)
+    return _redirect(request, "settings_page")

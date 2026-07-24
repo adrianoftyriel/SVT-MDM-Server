@@ -1,14 +1,20 @@
 <!DOCTYPE html>
-<html lang="en">
+{% set theme = active_theme() %}
+<html lang="en" data-theme="{{ theme.id }}" class="{{ 'dark' if theme.dark else 'light' }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}SVT MDM{% endblock %}</title>
   <link rel="stylesheet" href="{{ path_for(request, 'static', path='app.css') }}">
+  <style>:root { {{ theme.css_vars() }} }</style>
 </head>
-<body>
+<body class="theme-{{ theme.id }}">
   <header class="topbar">
     <a class="brand" href="{{ path_for(request, 'index') }}">🔒 SVT MDM</a>
+    <nav class="topnav">
+      <a href="{{ path_for(request, 'index') }}">Devices</a>
+      <a href="{{ path_for(request, 'settings_page') }}">Appearance</a>
+    </nav>
   </header>
   <main class="container">
     {% block content %}{% endblock %}

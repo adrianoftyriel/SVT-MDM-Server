@@ -152,3 +152,43 @@ The `backup_now` command triggers a run; it requires the `backup` capability.
   "capabilities": { "...": "see above" }
 }
 ```
+
+Response:
+```json
+{ "ok": true, "tier": "device_admin", "theme": "midnight" }
+```
+
+The `theme` field is the id of the operator-selected interface theme (see
+below). The agent stores it and restyles the app to match; it is refreshed on
+every check-in.
+
+## Interface theme
+
+The operator picks one interface theme on the server dashboard
+(**Appearance**). It styles the dashboard *and* is pushed to every device so the
+phone app's colours match. The theme catalogue is defined once in the server
+(`app/themes.py`) and mirrored in the agent (`ui/theme/Themes.kt`); both sides
+key off a stable `theme id`.
+
+Current themes: `midnight` (default), `graphite`, `nord`, `nebula`,
+`terminal`, `aurora`, `solar`, `sandstone`, `lcars`.
+
+### Active theme — `GET /api/theme`
+Device-authenticated. Returns the full colour token set so an agent can render a
+theme even if the id is one it doesn't know locally:
+```json
+{
+  "id": "lcars",
+  "name": "LCARS",
+  "dark": true,
+  "font": "condensed",
+  "colors": {
+    "bg": "#000000", "panel": "#0b0b0b", "panel2": "#161616",
+    "text": "#ffcc99", "muted": "#cc99cc", "accent": "#ff9900",
+    "accent_text": "#000000", "ok": "#99cc99", "warn": "#ffcc00",
+    "danger": "#cc6666", "border": "#ff9900"
+  }
+}
+```
+
+`font` is one of `system`, `mono`, `condensed`.

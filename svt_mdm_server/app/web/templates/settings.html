@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Appearance · SVT MDM{% endblock %}
+{% block content %}
+<h1>Appearance</h1>
+<p class="muted">Pick the interface theme. It applies to this dashboard and is
+   pushed to every enrolled device — the phone app adopts the same colours on
+   its next check-in.</p>
+
+<form method="post" action="{{ path_for(request, 'save_theme') }}">
+  <div class="theme-grid">
+    {% for t in all_themes %}
+    <label class="theme-card {{ 'selected' if t.id == active_theme_id }}"
+           style="{{ t.css_vars() }}">
+      <input type="radio" name="theme" value="{{ t.id }}"
+             {{ 'checked' if t.id == active_theme_id }}>
+      <span class="theme-preview" style="background: var(--bg); border-color: var(--border);">
+        <span class="tp-bar" style="background: var(--panel); border-color: var(--border);">
+          <span class="tp-dot" style="background: var(--accent);"></span>
+          <span class="tp-line" style="background: var(--muted);"></span>
+        </span>
+        <span class="tp-body">
+          <span class="tp-card" style="background: var(--panel); border-color: var(--border);">
+            <span class="tp-text" style="background: var(--text);"></span>
+            <span class="tp-text short" style="background: var(--muted);"></span>
+            <span class="tp-btn" style="background: var(--accent); color: var(--accent-text);">Aa</span>
+          </span>
+          <span class="tp-swatches">
+            <span style="background: var(--ok);"></span>
+            <span style="background: var(--warn);"></span>
+            <span style="background: var(--danger);"></span>
+          </span>
+        </span>
+      </span>
+      <span class="theme-meta">
+        <strong>{{ t.name }}</strong>
+        <span class="muted">{{ t.description }}</span>
+      </span>
+    </label>
+    {% endfor %}
+  </div>
+  <div class="row" style="margin-top: 1rem;">
+    <button type="submit">Apply theme</button>
+  </div>
+</form>
+{% endblock %}
