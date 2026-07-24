@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}SVT MDM{% endblock %}</title>
-  <link rel="stylesheet" href="{{ path_for(request, 'static', path='app.css') }}">
+  <link rel="stylesheet" href="{{ path_for(request, 'static', path='app.css') }}?v={{ static_v('app.css') }}">
   <style>:root { {{ theme.css_vars() }} }</style>
 </head>
 <body class="theme-{{ theme.id }}">

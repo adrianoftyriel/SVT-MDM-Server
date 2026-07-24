@@ -33,7 +33,25 @@ from app.services import CommandError, queue_command
 from app.util import new_token
 
 TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "templates")
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
+
+
+def _static_v(name: str) -> str:
+    """Cache-busting token for a static asset (its mtime).
+
+    Appended as ``?v=`` to static URLs so a redeploy that changes the file
+    forces browsers to refetch it. Without this, an updated stylesheet can be
+    masked by a stale cached copy — e.g. a theme change that the old CSS
+    (hard-coded colours, ignoring the injected CSS variables) never renders.
+    """
+    try:
+        return str(int(os.path.getmtime(os.path.join(STATIC_DIR, name))))
+    except OSError:
+        return "0"
+
+
+templates.env.globals["static_v"] = _static_v
 
 
 def _path_for(request: Request, name: str, **params) -> str:

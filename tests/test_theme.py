@@ -74,3 +74,12 @@ def test_unknown_theme_falls_back_to_default(client):
 
 def test_theme_endpoint_requires_auth(client):
     assert client.get("/api/theme").status_code == 401
+
+
+def test_stylesheet_is_cache_busted(client):
+    """The app.css link carries a ?v= token so a redeploy can't be masked by a
+    stale cached stylesheet (which would hide theme changes)."""
+    import re
+
+    page = client.get("/settings")
+    assert re.search(r"app\.css\?v=\d+", page.text)
