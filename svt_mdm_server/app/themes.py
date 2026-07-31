@@ -146,6 +146,33 @@ _CATALOG: tuple[Theme, ...] = (
         muted="#7c6a4d", accent="#b5651d", accent_text="#fffaf0",
         ok="#6a8a3f", warn="#b9822b", danger="#b23a2f", border="#ddcca6",
     ),
+    # --- Themes drawn from the admin consoles of well-regarded MDMs. Each takes
+    # that product's design language (not its trademarks or assets): the palette
+    # temperature, contrast level and accent character.
+    _t(
+        "blueprint", "Blueprint",
+        "Cool silver-blue, spacious and card-led (Iru/Kandji console).",
+        dark=False, font="system",
+        bg="#f5f8fc", panel="#ffffff", panel2="#e9eff7", text="#0f1b2d",
+        muted="#5a6b84", accent="#2563eb", accent_text="#ffffff",
+        ok="#0f7b52", warn="#9a6a00", danger="#c62b3f", border="#d3dfec",
+    ),
+    _t(
+        "plainsight", "Plainsight",
+        "Stark, high-contrast minimalism with hairline rules (SimpleMDM).",
+        dark=False, font="system",
+        bg="#fafafa", panel="#ffffff", panel2="#f4f4f5", text="#111113",
+        muted="#6b6b73", accent="#4f46e5", accent_text="#ffffff",
+        ok="#157f3d", warn="#8a5a00", danger="#c1121f", border="#e2e2e6",
+    ),
+    _t(
+        "sprout", "Sprout",
+        "Android-native charcoal with a bright green accent (TinyMDM).",
+        dark=True, font="system",
+        bg="#121417", panel="#1b1e22", panel2="#24282d", text="#e6e8ea",
+        muted="#9aa0a6", accent="#3ddc84", accent_text="#06210f",
+        ok="#2eb872", warn="#ffc107", danger="#ff5252", border="#2f343a",
+    ),
     _t(
         "lcars", "LCARS", "Starfleet library computer — amber pills on black.",
         dark=True, font="condensed",

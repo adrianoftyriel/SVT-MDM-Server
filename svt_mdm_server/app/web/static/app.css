@@ -37,6 +37,24 @@ body {
 .topnav { display: flex; gap: 1rem; }
 .topnav a { color: var(--muted); text-decoration: none; font-size: 0.95rem; }
 .topnav a:hover { color: var(--text); }
+/* Theme switcher: pushed to the right of the topbar on every page. */
+.theme-switch { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; }
+.theme-switch select {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.theme-switch select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* Visually hidden, still announced by screen readers. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
 .container { max-width: 900px; margin: 0 auto; padding: 1.5rem 1.25rem; }
 h1 { font-size: 1.5rem; }
 h2 { font-size: 1.1rem; margin-top: 0; }

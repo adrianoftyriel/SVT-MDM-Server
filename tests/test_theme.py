@@ -76,6 +76,62 @@ def test_theme_endpoint_requires_auth(client):
     assert client.get("/api/theme").status_code == 401
 
 
+def test_topbar_switcher_lists_every_theme_and_marks_the_active_one(client):
+    from app.themes import all_themes
+
+    page = client.get("/settings")
+    assert 'id="theme-switch"' in page.text
+    for theme in all_themes():
+        assert f'value="{theme.id}"' in page.text
+    # Midnight is active by default, so its option carries `selected`.
+    assert '<option value="midnight" selected>' in page.text
+
+
+def test_switcher_returns_to_the_page_it_was_used_on(client):
+    """The topbar posts a `next` path so the operator stays put."""
+    resp = client.post(
+        "/settings/theme",
+        data={"theme": "sprout", "next": "/devices"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert resp.headers["location"] == "/devices"
+
+
+def test_switcher_rejects_offsite_redirects(client):
+    """`next` must not become an open redirect."""
+    for hostile in ("https://evil.example/x", "//evil.example", "/\\evil.example"):
+        resp = client.post(
+            "/settings/theme",
+            data={"theme": "sprout", "next": hostile},
+            follow_redirects=False,
+        )
+        assert resp.status_code == 303
+        assert "evil.example" not in resp.headers["location"]
+        assert resp.headers["location"].endswith("/settings")
+
+
+def test_mdm_inspired_themes_are_available(client):
+    """The three console-inspired themes resolve and carry full token sets."""
+    token = _enroll(client)
+    auth = {"Authorization": f"Bearer {token}"}
+
+    for theme_id, accent, dark in (
+        ("blueprint", "#2563eb", False),
+        ("plainsight", "#4f46e5", False),
+        ("sprout", "#3ddc84", True),
+    ):
+        client.post("/settings/theme", data={"theme": theme_id})
+        payload = client.get("/api/theme", headers=auth).json()
+        assert payload["id"] == theme_id
+        assert payload["colors"]["accent"] == accent
+        assert payload["dark"] is dark
+        assert set(payload["colors"]) >= {
+            "bg", "panel", "panel2", "text", "muted",
+            "accent", "accent_text", "ok", "warn", "danger", "border",
+        }
+
+
 def test_stylesheet_is_cache_busted(client):
     """The app.css link carries a ?v= token so a redeploy can't be masked by a
     stale cached stylesheet (which would hide theme changes)."""

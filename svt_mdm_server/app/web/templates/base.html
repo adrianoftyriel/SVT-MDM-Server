@@ -15,6 +15,18 @@
       <a href="{{ path_for(request, 'index') }}">Devices</a>
       <a href="{{ path_for(request, 'settings_page') }}">Appearance</a>
     </nav>
+    <form class="theme-switch" method="post"
+          action="{{ path_for(request, 'save_theme') }}">
+      <input type="hidden" name="next" value="{{ request.scope.get('root_path', '') }}{{ request.url.path }}">
+      <label class="sr-only" for="theme-switch">Interface theme</label>
+      <select id="theme-switch" name="theme" aria-label="Interface theme"
+              onchange="this.form.submit()">
+        {% for t in theme_catalog() %}
+        <option value="{{ t.id }}" {{ 'selected' if t.id == theme.id }}>{{ t.name }}</option>
+        {% endfor %}
+      </select>
+      <noscript><button type="submit">Apply</button></noscript>
+    </form>
   </header>
   <main class="container">
     {% block content %}{% endblock %}

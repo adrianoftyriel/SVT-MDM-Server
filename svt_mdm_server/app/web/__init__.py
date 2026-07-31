@@ -83,6 +83,32 @@ def _active_theme() -> themes.Theme:
 # Expose to every template (base.html injects the theme's CSS variables).
 templates.env.globals["active_theme"] = _active_theme
 
+# The full catalogue, for the topbar theme switcher in base.html.
+templates.env.globals["theme_catalog"] = themes.all_themes
+
+
+def _safe_next(request: Request, candidate: str | None) -> str | None:
+    """Validate a ``next`` redirect target supplied by a form.
+
+    Only host-relative paths within this app are allowed, so the theme switcher
+    can return the operator to the page they were on without becoming an open
+    redirect. Returns None when the value is missing or untrustworthy.
+    """
+    if not candidate:
+        return None
+    # Must be a single-slash-rooted path. That rules out absolute URLs (a scheme
+    # would precede the slash) and protocol-relative "//evil.com". Backslashes
+    # and control characters are rejected because some clients normalise them
+    # into a host separator.
+    if not candidate.startswith("/") or candidate.startswith("//"):
+        return None
+    if any(c in candidate for c in "\\\r\n\t"):
+        return None
+    root_path = request.scope.get("root_path", "")
+    if root_path and not candidate.startswith(root_path):
+        return None
+    return candidate
+
 # Defence in depth: device-reported strings (app labels, package names, model,
 # etc.) are rendered in the operator's authenticated dashboard, so force HTML
 # auto-escaping to prevent stored XSS from a malicious/compromised device.
@@ -356,7 +382,13 @@ def settings_page(
 def save_theme(
     request: Request,
     theme: str = Form(...),
+    next: str | None = Form(None),
     session: Session = Depends(get_session),
 ) -> RedirectResponse:
     prefs.set_active_theme_id(session, theme)
+    # The topbar switcher posts the page it was used on, so the operator stays
+    # put; the Appearance page posts nothing and lands back on itself.
+    target = _safe_next(request, next)
+    if target:
+        return RedirectResponse(url=target, status_code=status.HTTP_303_SEE_OTHER)
     return _redirect(request, "settings_page")

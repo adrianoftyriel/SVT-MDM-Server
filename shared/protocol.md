@@ -171,7 +171,11 @@ phone app's colours match. The theme catalogue is defined once in the server
 key off a stable `theme id`.
 
 Current themes: `midnight` (default), `graphite`, `nord`, `nebula`,
-`terminal`, `aurora`, `solar`, `sandstone`, `lcars`.
+`terminal`, `aurora`, `solar`, `sandstone`, `blueprint`, `plainsight`,
+`sprout`, `lcars`.
+
+The operator can switch themes from the dropdown in the dashboard topbar on any
+page, or from the **Appearance** page's preview grid.
 
 ### Active theme — `GET /api/theme`
 Device-authenticated. Returns the full colour token set so an agent can render a
