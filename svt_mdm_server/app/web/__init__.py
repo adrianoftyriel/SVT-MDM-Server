@@ -54,6 +54,17 @@ def _static_v(name: str) -> str:
 templates.env.globals["static_v"] = _static_v
 
 
+def _prefix(request: Request) -> str:
+    """The path prefix that browser-visible URLs must carry.
+
+    Under Home Assistant ingress this is the ``X-Ingress-Path`` value recorded
+    by the ``ingress_root_path`` middleware. It is kept out of
+    ``scope["root_path"]`` on purpose — see that middleware for why. Falls back
+    to root_path so running the app under a real ASGI mount still works.
+    """
+    return request.scope.get("ingress_path") or request.scope.get("root_path", "")
+
+
 def _path_for(request: Request, name: str, **params) -> str:
     """Build a host-relative URL that includes the ingress path prefix.
 
@@ -62,12 +73,17 @@ def _path_for(request: Request, name: str, **params) -> str:
     ``/api/hassio_ingress/<token>/devices/<id>`` is resolved by the browser
     against the current ingress URL, which is correct.
     """
-    root_path = request.scope.get("root_path", "")
-    return f"{root_path}{request.app.url_path_for(name, **params)}"
+    return f"{_prefix(request)}{request.app.url_path_for(name, **params)}"
+
+
+def _current_path(request: Request) -> str:
+    """The current page as the browser sees it (prefix + path)."""
+    return f"{_prefix(request)}{request.url.path}"
 
 
 # Expose to templates as `path_for(request, 'name', ...)`.
 templates.env.globals["path_for"] = _path_for
+templates.env.globals["current_path"] = _current_path
 
 
 def _active_theme() -> themes.Theme:
@@ -104,8 +120,8 @@ def _safe_next(request: Request, candidate: str | None) -> str | None:
         return None
     if any(c in candidate for c in "\\\r\n\t"):
         return None
-    root_path = request.scope.get("root_path", "")
-    if root_path and not candidate.startswith(root_path):
+    prefix = _prefix(request)
+    if prefix and not candidate.startswith(prefix):
         return None
     return candidate
 

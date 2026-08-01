@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from sqlalchemy import select
 
 
@@ -130,6 +132,71 @@ def test_mdm_inspired_themes_are_available(client):
             "bg", "panel", "panel2", "text", "muted",
             "accent", "accent_text", "ok", "warn", "danger", "border",
         }
+
+
+def test_stylesheet_loads_under_home_assistant_ingress(client):
+    """Regression: the dashboard rendered as unstyled HTML under HA ingress.
+
+    HA forwards ingress requests with the prefix already STRIPPED and passes the
+    prefix in X-Ingress-Path. Setting scope["root_path"] from that header made
+    Starlette strip a prefix that wasn't in the path, so the StaticFiles mount
+    resolved the wrong filename and 404'd app.css. HTML routes still worked,
+    which is why only the styling disappeared.
+    """
+    ingress = "/api/hassio_ingress/TOKEN123"
+    headers = {"X-Ingress-Path": ingress}
+
+    page = client.get("/", headers=headers)
+    assert page.status_code == 200
+
+    # Links must be built under the ingress prefix for the browser to resolve.
+    href = re.search(r'href="([^"]*app\.css[^"]*)"', page.text).group(1)
+    assert href.startswith(f"{ingress}/static/app.css")
+
+    # ...and the asset must be served when HA forwards it with the prefix gone.
+    css = client.get("/static/app.css", headers=headers)
+    assert css.status_code == 200, "app.css must load under ingress"
+    assert "text/css" in css.headers["content-type"]
+    # The stylesheet must consume the injected theme variables.
+    assert "var(--bg)" in css.text
+
+
+def test_theme_switcher_returns_under_ingress_prefix(client):
+    """The switcher's `next` must carry the ingress prefix, and be accepted."""
+    ingress = "/api/hassio_ingress/TOKEN123"
+    headers = {"X-Ingress-Path": ingress}
+
+    page = client.get("/settings", headers=headers)
+    assert f'value="{ingress}/settings"' in page.text
+
+    resp = client.post(
+        "/settings/theme",
+        data={"theme": "sprout", "next": f"{ingress}/devices"},
+        headers=headers,
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert resp.headers["location"] == f"{ingress}/devices"
+
+    # A path outside the ingress prefix is still refused.
+    resp = client.post(
+        "/settings/theme",
+        data={"theme": "sprout", "next": "/somewhere-else"},
+        headers=headers,
+        follow_redirects=False,
+    )
+    assert resp.headers["location"] != "/somewhere-else"
+
+
+def test_font_stack_is_not_html_escaped(client):
+    """Regression: autoescaping turned the quotes in font stacks into &#39;,
+    which invalidates --font and drops the page to the default serif face."""
+    page = client.get("/settings")
+    assert "&#39;" not in page.text and "&amp;#39;" not in page.text
+    assert "'Segoe UI'" in page.text
+    # A quoted family in a non-default theme's preview swatch too.
+    client.post("/settings/theme", data={"theme": "lcars"})
+    assert "'Antonio'" in client.get("/settings").text
 
 
 def test_stylesheet_is_cache_busted(client):

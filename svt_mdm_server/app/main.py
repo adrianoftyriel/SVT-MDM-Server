@@ -51,10 +51,21 @@ app = FastAPI(title="SVT MDM Server", version=__version__, lifespan=lifespan)
 
 @app.middleware("http")
 async def ingress_root_path(request: Request, call_next):
-    """Honor Home Assistant ingress by generating URLs under its path prefix."""
+    """Record Home Assistant's ingress prefix for URL generation.
+
+    HA proxies ingress requests with the prefix already stripped (the app sees
+    ``/settings``, not ``/api/hassio_ingress/<token>/settings``) and passes the
+    prefix in ``X-Ingress-Path`` so we can build links the browser can resolve.
+
+    This deliberately does NOT set ``scope["root_path"]``. Starlette strips
+    root_path when routing, so setting it while HA is already stripping made
+    mounted StaticFiles resolve the wrong filename and 404 every asset — the
+    dashboard rendered as unstyled HTML. Keep the prefix in our own scope key
+    and apply it only when generating URLs (see ``app.web._prefix``).
+    """
     ingress_path = request.headers.get("X-Ingress-Path")
     if ingress_path:
-        request.scope["root_path"] = ingress_path
+        request.scope["ingress_path"] = ingress_path.rstrip("/")
     return await call_next(request)
 
 

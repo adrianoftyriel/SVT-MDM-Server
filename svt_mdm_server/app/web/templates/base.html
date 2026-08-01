@@ -6,7 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}SVT MDM{% endblock %}</title>
   <link rel="stylesheet" href="{{ path_for(request, 'static', path='app.css') }}?v={{ static_v('app.css') }}">
-  <style>:root { {{ theme.css_vars() }} }</style>
+  {# `| safe`: these values come from our own theme catalogue, never from user
+     or device input. Escaping them turns the quotes in font stacks into &#39;,
+     which invalidates the --font declaration and drops the page to the
+     browser's default serif face. #}
+  <style>:root { {{ theme.css_vars() | safe }} }</style>
 </head>
 <body class="theme-{{ theme.id }}">
   <header class="topbar">
@@ -17,7 +21,7 @@
     </nav>
     <form class="theme-switch" method="post"
           action="{{ path_for(request, 'save_theme') }}">
-      <input type="hidden" name="next" value="{{ request.scope.get('root_path', '') }}{{ request.url.path }}">
+      <input type="hidden" name="next" value="{{ current_path(request) }}">
       <label class="sr-only" for="theme-switch">Interface theme</label>
       <select id="theme-switch" name="theme" aria-label="Interface theme"
               onchange="this.form.submit()">

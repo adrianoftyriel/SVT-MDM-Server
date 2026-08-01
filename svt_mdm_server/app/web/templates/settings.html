@@ -10,7 +10,7 @@
   <div class="theme-grid">
     {% for t in all_themes %}
     <label class="theme-card {{ 'selected' if t.id == active_theme_id }}"
-           style="{{ t.css_vars() }}">
+           style="{{ t.css_vars() | safe }}">
       <input type="radio" name="theme" value="{{ t.id }}"
              {{ 'checked' if t.id == active_theme_id }}>
       <span class="theme-preview" style="background: var(--bg); border-color: var(--border);">
