@@ -33,6 +33,8 @@ jobs:
           pip install -r svt_mdm_server/requirements.txt pytest httpx cryptography
 
       - name: Run tests
-        run: |
-          cd svt_mdm_server
-          pytest -v
+        # Run from the repo root: pytest.ini sets pythonpath=svt_mdm_server
+        # and testpaths=tests, both root-relative. Do not cd into
+        # svt_mdm_server -- testpaths would then resolve against that
+        # directory and pytest would collect 0 tests.
+        run: pytest -v
