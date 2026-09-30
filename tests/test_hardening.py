@@ -282,3 +282,26 @@ def test_telemetry_range_checks(client):
     assert post("/api/telemetry/checkin", {"battery": 101}) == 422
     assert post("/api/telemetry/checkin", {"battery": -1}) == 422
     assert post("/api/telemetry/checkin", {"battery": 100}) == 200
+
+
+def test_provisioning_qr_stays_scannable():
+    import re
+
+    import segno
+
+    from app import provisioning
+
+    payload = provisioning.provisioning_payload(
+        apk_url="https://github.com/adrianoftyriel/svt-mdm-android/releases/latest/download/svt-mdm-latest.apk",
+        signature_checksum="Q" * 43,
+        server_url="https://mdm.example.com",
+        enroll_token="A" * 43,
+        enrollment_secret="s" * 24,
+    )
+    svg = provisioning.qr_svg(payload)
+    assert svg.startswith("<?xml") or "<svg" in svg
+    compact = __import__("json").dumps(payload, separators=(",", ":"))
+    assert segno.make(compact, error="l").version <= 18
+    # Quiet zone: viewBox is symbol + 2*4 modules wide.
+    modules = segno.make(compact, error="l").symbol_size(scale=1, border=0)[0]
+    assert re.search(rf'viewBox="0 0 {modules + 8} {modules + 8}"', svg) or str(modules + 8) in svg

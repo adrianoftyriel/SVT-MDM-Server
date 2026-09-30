@@ -30,7 +30,6 @@ def provisioning_payload(
         f"{_EXTRA}PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": ADMIN_COMPONENT,
         f"{_EXTRA}PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": apk_url,
         f"{_EXTRA}PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM": signature_checksum,
-        f"{_EXTRA}PROVISIONING_SKIP_ENCRYPTION": False,
         f"{_EXTRA}PROVISIONING_ADMIN_EXTRAS_BUNDLE": {
             "server_url": server_url,
             "enroll_token": enroll_token,
@@ -41,7 +40,9 @@ def provisioning_payload(
 
 def qr_svg(payload: dict) -> str:
     """Render a provisioning payload as an inline SVG QR code."""
-    qr = segno.make(json.dumps(payload), error="m")
+    # Keep the code as sparse as possible: the setup wizard's camera is low-res.
+    qr = segno.make(json.dumps(payload, separators=(",", ":")), error="l")
     buf = io.BytesIO()
-    qr.save(buf, kind="svg", scale=4, border=2, dark="#0f1419", light="#ffffff")
+    # border=4 is the quiet zone the QR spec requires; scanners often fail below it.
+    qr.save(buf, kind="svg", scale=4, border=4, dark="#000000", light="#ffffff")
     return buf.getvalue().decode("utf-8")
