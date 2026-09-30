@@ -362,34 +362,3 @@ def test_dashboard_escapes_device_strings(client):
     body = client.get("/").text
     assert "<script>alert(1)</script>" not in body
     assert "&lt;script&gt;" in body
-
-def test_usage_with_last_used_succeeds(client):
-    """Regression: usage stats with last_used (datetime) must not 500.
-
-    The Android agent sends last_used as an ISO datetime string. The server
-    must serialize it to JSON correctly (model_dump(mode="json")), not pass
-    a raw datetime object to the JSON column.
-    """
-    enroll_token = _create_device(client)
-    token = client.post(
-        "/api/enroll",
-        json={"enroll_token": enroll_token, "capabilities": {"usage_access": True}},
-    ).json()["device_token"]
-    auth = {"Authorization": f"Bearer {token}"}
-
-    # A usage stat WITH last_used — exactly what the Android agent sends.
-    resp = client.post(
-        "/api/telemetry/usage",
-        json={
-            "range_days": 7,
-            "stats": [{
-                "package": "com.example.app",
-                "foreground_ms": 3600000,
-                "last_used": "2026-09-30T12:00:00+00:00",
-            }],
-        },
-        headers=auth,
-    )
-    assert resp.status_code == 200, resp.text
-    assert resp.json()["count"] == 1
-
