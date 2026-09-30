@@ -27,7 +27,10 @@ jobs:
       - name: Install dependencies
         run: |
           python3 -m pip install --upgrade pip
-          pip install -r svt_mdm_server/requirements.txt pytest httpx
+          # cryptography is imported by app/crypto.py but absent from
+          # requirements.txt: the add-on image installs it via apk (no armv7
+          # musllinux wheel exists), so CI installs it from PyPI instead.
+          pip install -r svt_mdm_server/requirements.txt pytest httpx cryptography
 
       - name: Run tests
         run: |

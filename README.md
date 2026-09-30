@@ -131,6 +131,16 @@ tests/                   End-to-end smoke tests (no broker required)
 > as the Docker build context, so everything the image needs lives inside
 > `svt_mdm_server/`. `tests/` and `shared/` stay at the repo root (dev-only).
 
+## Changelog
+
+- **0.5.5** — Fix `POST /api/telemetry/usage` returning 500 when a stat entry
+  carries `last_used`. The endpoint dumped pydantic models in python mode,
+  leaving `last_used` a `datetime` that failed JSON serialization into the
+  `usage_snapshots.stats` JSON column. Both telemetry dump sites
+  (`/usage`, `/inventory`) now use `model_dump(mode="json")`. Regression test
+  added; CI workflow now installs `cryptography` so the suite can import the
+  app (the add-on image gets it from Alpine's `py3-cryptography` instead).
+
 ## Roadmap
 
 - **Phase 1 (this):** server skeleton — enrollment, telemetry, commands, dashboard. ✅

@@ -81,7 +81,7 @@ def inventory(
         AppInventory(
             device_id=device.id,
             captured_at=body.captured_at or utcnow(),
-            apps=[a.model_dump() for a in body.apps],
+            apps=[a.model_dump(mode="json") for a in body.apps],
         )
     )
     _touch(session, device)
@@ -99,7 +99,7 @@ def usage(
             device_id=device.id,
             captured_at=body.captured_at or utcnow(),
             range_days=body.range_days,
-            stats=[s.model_dump() for s in body.stats],
+            stats=[s.model_dump(mode="json") for s in body.stats],
         )
     )
     _touch(session, device)

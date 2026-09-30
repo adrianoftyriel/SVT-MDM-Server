@@ -92,6 +92,46 @@ def test_full_enrollment_and_command_flow(client):
     ).status_code == 200
 
 
+def test_usage_with_last_used(client):
+    """Stats carrying ``last_used`` must be accepted (WALA-54).
+
+    ``UsageEntry.last_used`` is a ``datetime``; ``model_dump()`` in python
+    mode leaves it a datetime object, which raises "not JSON serializable"
+    when flushed to the ``usage_snapshots.stats`` JSON column. The endpoint
+    must dump in json mode so real-agent payloads succeed, and the stored
+    JSON must round-trip ``last_used`` as a string.
+    """
+    from sqlalchemy import select
+
+    import app.db as db
+    from app.models import UsageSnapshot
+
+    enroll_token = _create_device(client)
+    auth = {"Authorization": "Bearer " + client.post(
+        "/api/enroll", json={"enroll_token": enroll_token, "capabilities": {}}
+    ).json()["device_token"]}
+
+    resp = client.post(
+        "/api/telemetry/usage",
+        json={
+            "range_days": 7,
+            "stats": [
+                {"package": "com.android.chrome", "foreground_ms": 900000,
+                 "last_used": "2026-09-29T18:04:11Z"},
+                {"package": "com.x", "foreground_ms": 60000},
+            ],
+        },
+        headers=auth,
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["count"] == 2
+
+    with db.SessionLocal() as s:
+        snap = s.scalar(select(UsageSnapshot))
+    assert snap.stats[0]["last_used"] == "2026-09-29T18:04:11Z"
+    assert snap.stats[1]["last_used"] is None
+
+
 def test_unsupported_command_rejected(client):
     enroll_token = _create_device(client)
     resp = client.post(
