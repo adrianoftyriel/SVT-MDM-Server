@@ -1,12 +1,11 @@
 name: SVT MDM Server
-version: "0.5.5"
+version: "0.5.6"
 slug: svt_mdm_server
 description: Self-hosted MDM for Android (and later Windows) devices
 url: https://github.com/adrianoftyriel/svt-mdm-server
 arch:
   - aarch64
   - amd64
-  - armv7
 init: false
 
 # Expose the dashboard through Home Assistant ingress (uses HA's own auth).

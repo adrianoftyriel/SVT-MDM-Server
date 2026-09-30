@@ -1,9 +1,14 @@
-ARG BUILD_FROM
-FROM ${BUILD_FROM}
+# Per-arch HA base image, selected with the BUILD_ARCH build arg the
+# Supervisor passes on every add-on build. This replaces the retired
+# build.yaml `build_from` map with the same images it pinned (Alpine 3.19
+# bases); the generic ghcr.io/home-assistant/base multi-arch image only
+# exists from 3.21, and this change must not alter the deployed runtime.
+ARG BUILD_ARCH
+FROM ghcr.io/home-assistant/${BUILD_ARCH}-base:3.19
 
 # Alpine-based HA base image. bashio is already available.
-# py3-cryptography comes prebuilt from Alpine, avoiding a slow/failing source
-# build of `cryptography` on musl/armv7 during pip install.
+# py3-cryptography comes prebuilt from Alpine, avoiding a slow source build
+# of `cryptography` on musl during pip install.
 RUN apk add --no-cache python3 py3-pip py3-cryptography
 
 ENV PYTHONUNBUFFERED=1 \

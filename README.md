@@ -114,7 +114,7 @@ pytest -q
 
 ```
 svt_mdm_server/          The Home Assistant add-on (self-contained build context)
-  config.yaml, build.yaml, Dockerfile, run.sh   Add-on packaging
+  config.yaml, Dockerfile, run.sh   Add-on packaging
   requirements.txt
   app/
     api/       JSON API routers: enroll, telemetry, commands
@@ -132,6 +132,13 @@ tests/                   End-to-end smoke tests (no broker required)
 > `svt_mdm_server/`. `tests/` and `shared/` stay at the repo root (dev-only).
 
 ## Changelog
+
+- **0.5.6** — Build-metadata only: clear the two Supervisor build deprecation
+  warnings. Drop the deprecated `armv7` arch (the lab HA host is amd64, and
+  HA's supported arch list is now `aarch64`/`amd64` only) and delete
+  `build.yaml`; the Dockerfile now selects the same per-arch HA base images
+  itself via the `BUILD_ARCH` build arg the Supervisor passes on every build.
+  No change to options, ports, ingress, or the API surface.
 
 - **0.5.5** — Fix `POST /api/telemetry/usage` returning 500 when a stat entry
   carries `last_used`. The endpoint dumped pydantic models in python mode,
