@@ -9,10 +9,14 @@ shapes. Keep it in sync with `app/models` and the agent code.
 - **Telemetry** (device → server): HTTPS `POST` with a `Bearer <device_token>`
   header. Chosen for reliability — survives MQTT reconnects and works behind
   captive portals.
-- **Commands** (server → device): MQTT, for instant delivery. The device
-  subscribes to its own command topic and publishes acks back.
-- Devices that cannot hold an MQTT connection fall back to polling
-  `GET /api/commands/pending` on their telemetry check-in.
+- **Commands** (server → device): **HTTPS polling is the default** —
+  `GET /api/commands/pending`, acked with `POST /api/commands/ack`. A command
+  that is handed out but not acked within 45 s is re-delivered, so handlers
+  must be idempotent.
+- **MQTT push is optional** (server option `mqtt_push`). When enabled, the
+  enrollment response advertises a broker; the device subscribes to its own
+  command topic for instant delivery and may publish acks back. Polling keeps
+  working alongside it.
 
 ## Identity & auth
 
@@ -20,8 +24,14 @@ shapes. Keep it in sync with `app/models` and the agent code.
   `device_token` (opaque, issued once at enrollment, stored server-side only
   as a hash).
 - The `device_token` authenticates HTTPS telemetry and doubles as the MQTT
-  password (username = `device_id`). Broker ACLs restrict each device to its
-  own topics.
+  password (username = `device_id`) when MQTT push is enabled. **The server does
+  not provision broker users or ACLs** — the operator must create them in the
+  broker and restrict each device to `mdm/<device_id>/#` (e.g. Mosquitto
+  `pattern readwrite mdm/%u/#`). Without that, any broker client can publish
+  acks/status for any device, so the server only trusts an ack whose command
+  belongs to the topic's device, never re-completes a finished command, and
+  accepts only non-destructive commands (`ring`, `locate`) from Home Assistant
+  buttons.
 
 ## MQTT topics
 
@@ -56,6 +66,8 @@ commands the device's capabilities support.
 | `lock` (force)      | ✅           | ✅                      | ❌    |
 | `set_password`      | ✅           | ❌                      | ❌    |
 | `wipe`              | ✅           | ✅                      | ❌    |
+| `ring`              | ✅           | ✅                      | ✅    |
+| `backup_now`        | needs `backup` capability (any tier)            ||
 
 \* plain tier may require a manual permission grant.
 
@@ -64,7 +76,7 @@ commands the device's capabilities support.
 ```json
 {
   "id": "uuid",
-  "type": "locate | lock | set_password | wipe | refresh_inventory | refresh_usage",
+  "type": "locate | ring | lock | set_password | wipe | refresh_inventory | refresh_usage | backup_now",
   "payload": { },
   "issued_at": "2026-07-21T14:00:00Z"
 }
@@ -76,16 +88,20 @@ Per-type `payload`:
 |--------------------|----------------------------------|
 | `locate`           | `{}`                             |
 | `lock`             | `{}`                             |
-| `set_password`     | `{ "password": "1234" }`         |
+| `set_password`     | `{ "password": "1234" }` (non-empty; the server rejects an empty password) |
 | `wipe`             | `{ "confirm": true }`            |
 | `refresh_inventory`| `{}`                             |
 | `refresh_usage`    | `{ "days": 7 }`                  |
 | `ring`             | `{ "seconds": 30 }`              |
+| `backup_now`       | `{}`                             |
 
 `ring` plays a loud alarm-stream sound (ignores silent/vibrate) for the given
 duration. It needs no special privilege. Devices are also exposed to Home
-Assistant via MQTT discovery — a Ring button (plus Locate/Lock buttons and
-battery/last-seen/location sensors) that queues the matching command.
+Assistant via MQTT discovery — Ring and Locate buttons (plus
+battery/last-seen/location sensors) that queue the matching command. Lock,
+wipe and set_password are deliberately not exposed to Home Assistant.
+
+`issued_at` and every other server-emitted timestamp are UTC ending in `Z`.
 
 ## Command ack
 

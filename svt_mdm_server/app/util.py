@@ -12,6 +12,16 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def iso_z(dt: datetime | None) -> str | None:
+    """ISO-8601 UTC string ending in ``Z``. Naive datetimes (SQLite drops the
+    tzinfo on load) are assumed to already be UTC."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
 def new_token(nbytes: int = 32) -> str:
     """Generate an opaque, URL-safe secret token."""
     return secrets.token_urlsafe(nbytes)

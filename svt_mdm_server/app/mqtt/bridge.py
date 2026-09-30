@@ -115,7 +115,7 @@ class MqttBridge:
 
         # Home Assistant button press: mdm/<id>/ha/<command>. Payload is the
         # button's press token, not JSON.
-        if kind == "ha" and len(parts) >= 4:
+        if kind == "ha" and len(parts) == 4:
             await asyncio.to_thread(self._enqueue_from_ha, device_id, parts[3])
             return
 
@@ -123,6 +123,9 @@ class MqttBridge:
             data = json.loads(payload.decode() or "{}")
         except (ValueError, UnicodeDecodeError):
             log.warning("Dropping non-JSON message on %s", topic)
+            return
+        if not isinstance(data, dict):
+            log.warning("Dropping non-object message on %s", topic)
             return
 
         if kind == "ack":
@@ -136,17 +139,20 @@ class MqttBridge:
         from app.models import Command, CommandStatus
 
         command_id = data.get("id")
-        if not command_id:
+        status_str = data.get("status")
+        if not isinstance(command_id, str) or status_str not in ("acked", "failed"):
             return
+        detail = data.get("detail")
         with SessionLocal() as session:
             cmd = session.get(Command, command_id)
-            if cmd is None or cmd.device_id != device_id:
+            # The command must belong to the device named in the topic, and a
+            # finished command can't be flipped by a later message.
+            if cmd is None or cmd.device_id != device_id or cmd.completed_at is not None:
                 return
-            status_str = data.get("status")
             cmd.status = (
                 CommandStatus.acked if status_str == "acked" else CommandStatus.failed
             )
-            cmd.detail = data.get("detail")
+            cmd.detail = detail if isinstance(detail, str) else None
             cmd.completed_at = utcnow()
             session.commit()
             log.info("Command %s -> %s", command_id, cmd.status.value)
@@ -157,7 +163,7 @@ class MqttBridge:
 
         with SessionLocal() as session:
             device = session.get(Device, device_id)
-            if device is None:
+            if device is None or not device.enrolled:
                 return
             device.last_seen = utcnow()
             session.commit()
@@ -186,12 +192,12 @@ class MqttBridge:
 
     # -- Home Assistant discovery / state -------------------------------------
 
-    def publish_threadsafe(self, topic: str, payload: dict, retain: bool = False) -> None:
+    def publish_threadsafe(self, topic: str, payload: dict | None, retain: bool = False) -> None:
         """Publish JSON from a synchronous context (e.g. an HTTP handler)."""
         client, loop = self._client, self._loop
         if client is None or loop is None or not settings.ha_discovery:
             return
-        data = json.dumps(payload).encode()
+        data = b"" if payload is None else json.dumps(payload).encode()
 
         async def _pub():
             try:
@@ -229,6 +235,8 @@ class MqttBridge:
 
         for topic, payload in hadiscovery.discovery_messages(device):
             self.publish_threadsafe(topic, payload, retain=True)
+        for topic in hadiscovery.retired_discovery_topics(device):
+            self.publish_threadsafe(topic, None, retain=True)
         self.publish_threadsafe(
             hadiscovery.state_topic(device.id), hadiscovery.state_payload(device),
             retain=True,

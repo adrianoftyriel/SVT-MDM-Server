@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app import storage
@@ -101,6 +102,11 @@ async def upload_object(
     device: Device = Depends(authenticate_device),
     session: Session = Depends(get_session),
 ) -> dict:
+    if not storage.is_valid_sha256(sha256):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="sha256 must be 64 lowercase hex characters",
+        )
     existing = session.scalar(
         select(BackupObject).where(
             BackupObject.device_id == device.id, BackupObject.sha256 == sha256
@@ -128,7 +134,12 @@ async def upload_object(
         )
     )
     device.last_seen = utcnow()
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        # A concurrent upload of the same content registered it first.
+        session.rollback()
+        return {"stored": False, "deduped": True, "size": size}
     return {"stored": True, "deduped": False, "size": size}
 
 

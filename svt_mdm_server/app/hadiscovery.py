@@ -1,16 +1,20 @@
 """Home Assistant MQTT-discovery payloads for enrolled devices.
 
 Each device is announced to HA as a device with:
-  - buttons: Ring, Locate, Lock  (press -> command queued back to the phone)
+  - buttons: Ring, Locate  (press -> command queued back to the phone)
   - sensors: Battery, Last seen, Latitude, Longitude
 
 Buttons publish to ``mdm/<id>/ha/<command>``; the bridge subscribes there and
-enqueues the command. Sensors read ``mdm/<id>/state`` and ``mdm/<id>/location``,
+enqueues the command. Anyone who can publish to the broker can press these
+buttons, so only non-destructive commands are exposed (see the ACL note in
+shared/protocol.md). Sensors read ``mdm/<id>/state`` and ``mdm/<id>/location``,
 which the server publishes as telemetry arrives. Destructive commands (wipe,
-set_password) are deliberately NOT exposed to HA.
+set_password) and lock are deliberately NOT exposed to HA.
 """
 
 from __future__ import annotations
+
+from app.util import iso_z
 
 DISCOVERY_PREFIX = "homeassistant"
 
@@ -18,9 +22,12 @@ DISCOVERY_PREFIX = "homeassistant"
 HA_BUTTONS = {
     "ring": {"name": "Ring", "icon": "mdi:bell-ring"},
     "locate": {"name": "Locate", "icon": "mdi:crosshairs-gps"},
-    "lock": {"name": "Lock", "icon": "mdi:cellphone-lock"},
 }
 HA_ALLOWED_COMMANDS = set(HA_BUTTONS)
+
+# Buttons announced by earlier versions that must be removed from HA. Publishing
+# an empty retained payload to a discovery topic deletes the entity.
+RETIRED_BUTTONS = ("lock",)
 
 
 def state_topic(device_id: str) -> str:
@@ -85,10 +92,17 @@ def discovery_messages(device) -> list[tuple[str, dict]]:
     return out
 
 
+def retired_discovery_topics(device) -> list[str]:
+    return [
+        f"{DISCOVERY_PREFIX}/button/svtmdm_{device.id}_{cmd}/config"
+        for cmd in RETIRED_BUTTONS
+    ]
+
+
 def state_payload(device) -> dict:
     return {
         "battery": device.battery,
-        "last_seen": device.last_seen.isoformat() if device.last_seen else None,
+        "last_seen": iso_z(device.last_seen),
         "tier": device.tier.value,
         "name": device.name,
     }

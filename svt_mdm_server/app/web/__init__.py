@@ -8,11 +8,13 @@ per-request middleware (see app.main) sets ``root_path`` from the
 from __future__ import annotations
 
 import os
+import re
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import desc, func, select
+from sqlalchemy import delete, desc, func, select
 from sqlalchemy.orm import Session
 
 from app import prefs, provisioning, storage, themes
@@ -328,6 +330,20 @@ def backups_browse(
     )
 
 
+def _content_disposition(rel_path: str, fallback: str) -> str:
+    """Attachment header for a device-supplied path, safe against CR/LF, quotes
+    and non-ASCII (RFC 6266 / 5987)."""
+    base = rel_path.replace("\\", "/").rsplit("/", 1)[-1]
+    base = re.sub(r"[\x00-\x1f\x7f\"]", "", base).strip()
+    if base in ("", ".", ".."):
+        base = fallback
+    ascii_name = re.sub(r"[^A-Za-z0-9._ -]", "_", base)[:150]
+    return (
+        f'attachment; filename="{ascii_name}"; '
+        f"filename*=UTF-8''{quote(base[:150], safe='')}"
+    )
+
+
 @router.get("/devices/{device_id}/backups/{object_id}/download", name="backup_download")
 def backup_download(
     device_id: str, object_id: str, session: Session = Depends(get_session)
@@ -335,11 +351,14 @@ def backup_download(
     obj = session.get(BackupObject, object_id)
     if obj is None or obj.device_id != device_id:
         raise HTTPException(status_code=404, detail="Backup object not found")
-    filename = os.path.basename(obj.rel_path) or f"{obj.sha256}.bin"
+    if not storage.exists(device_id, obj.sha256):
+        raise HTTPException(status_code=404, detail="Backup data is missing on disk")
     return StreamingResponse(
         storage.open_decrypted(device_id, obj.sha256),
         media_type="application/octet-stream",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={
+            "Content-Disposition": _content_disposition(obj.rel_path, f"{obj.sha256}.bin")
+        },
     )
 
 
@@ -375,8 +394,21 @@ def delete_device(
 ) -> RedirectResponse:
     device = session.get(Device, device_id)
     if device is not None:
+        # Delete dependents explicitly so this doesn't rely on SQLite FK
+        # enforcement (which is also enabled in app.db).
+        for model in (
+            Command,
+            LocationPing,
+            AppInventory,
+            UsageSnapshot,
+            BackupObject,
+            BackupRun,
+            BackupConfig,
+        ):
+            session.execute(delete(model).where(model.device_id == device_id))
         session.delete(device)
         session.commit()
+        storage.delete_device_blobs(device_id)
     return _redirect(request, "index")
 
 

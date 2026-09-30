@@ -13,9 +13,10 @@ devices, packaged as a **Home Assistant add-on**.
   API token (stored only as a hash).
 - **Ingests telemetry**: location pings, installed-app inventory, and app
   usage statistics (HTTPS).
-- **Pushes commands** — `locate`, `lock`, `set_password`, `wipe`,
-  `refresh_inventory`, `refresh_usage` — over MQTT for instant delivery, with a
-  polling fallback when MQTT is unavailable.
+- **Queues commands** — `locate`, `ring`, `lock`, `set_password`, `wipe`,
+  `refresh_inventory`, `refresh_usage`, `backup_now`. Devices collect them by
+  **polling over HTTPS (the default)**. Optionally, enable `mqtt_push` to also
+  push them over MQTT for instant delivery (see "MQTT push and broker ACLs").
 - **Gates commands by capability tier.** Each device reports whether it is a
   Device Owner, Device Admin, or plain install; the dashboard only offers what a
   given device can actually do (e.g. `set_password` requires Device Owner).
@@ -70,6 +71,23 @@ For a quick LAN-only test you can point an agent at `http://<ha-host>:8099`
 directly, but the Android app blocks cleartext by default — see the agent repo's
 network-security note.
 
+### MQTT push and broker ACLs
+
+MQTT is optional. With `mqtt_push` off (the default) commands are delivered only
+by HTTPS polling and no broker is advertised to agents.
+
+If you turn `mqtt_push` on, note that **the add-on does not create broker
+accounts or ACLs**. Agents are told to log in to the broker as
+`username = <device_id>`, `password = <device_token>`, so you must create those
+users in Mosquitto yourself and restrict each to its own topics, e.g.
+`topic readwrite mdm/%u/#` (Mosquitto `pattern` ACL). Without per-device ACLs,
+any broker client can publish acks/status for any device or press the Home
+Assistant buttons. For that reason the server only accepts non-destructive
+commands (`ring`, `locate`) from Home Assistant buttons — `lock`, `wipe` and
+`set_password` are never accepted over the broker — and it ignores acks that
+don't match the topic's device. Old retained Lock buttons are removed from HA
+automatically.
+
 ### Dashboard is ingress-only
 
 The published port serves **only** the device API (`/api/*`, authenticated by
@@ -88,7 +106,7 @@ arriving through the public proxy cannot spoof that address via
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r svt_mdm_server/requirements.txt pytest httpx
+pip install -r svt_mdm_server/requirements.txt cryptography pytest httpx
 # Runs against ./mdm.db, no MQTT (polling-only), no auth on the dashboard.
 PYTHONPATH=svt_mdm_server MDM_DB_PATH=./mdm.db \
   uvicorn app.main:app --reload --port 8099
@@ -108,6 +126,7 @@ pytest -q
 | `MDM_ENROLLMENT_SECRET`      | `""`           | Shared secret an agent must present to enroll. |
 | `MDM_DB_PATH`                | `/data/mdm.db` | SQLite database location.                |
 | `MDM_LOG_LEVEL`              | `info`         | `debug`/`info`/`warning`/`error`.        |
+| `MDM_MQTT_PUSH`              | `false`        | Also push commands over MQTT (polling is always available). |
 | `MDM_MQTT_*`                 | (from HA)      | Broker host/port/credentials, injected by `run.sh`. |
 
 ## Repository layout
@@ -132,6 +151,20 @@ tests/                   End-to-end smoke tests (no broker required)
 > `svt_mdm_server/`. `tests/` and `shared/` stay at the repo root (dev-only).
 
 ## Changelog
+
+- **0.5.7** — Review fixes. Deleting a device now removes all its telemetry,
+  backup records, commands and encrypted blobs (SQLite foreign keys are now
+  enforced). Backup uploads validate `sha256` (64 lowercase hex) before touching
+  disk and use unique temp files, so concurrent uploads can't corrupt a blob.
+  `set_password` with an empty password is rejected (it would clear the lock
+  screen). Backup downloads sanitize the filename (RFC 5987) and return 404 for
+  a missing blob. `issued_at` / HA `last_seen` are UTC with a `Z` suffix. MQTT
+  bridge: the Home Assistant Lock button is removed (only `ring`/`locate`
+  accepted), acks are validated and can't re-complete a finished command, and
+  status from unenrolled devices is ignored; broker ACL requirements are now
+  documented. Location, accuracy and battery values are range-checked. Docs:
+  `cryptography` in the dev install, `ring`/`backup_now` documented, polling
+  clarified as the default.
 
 - **0.5.6** — Build-metadata only: clear the two Supervisor build deprecation
   warnings. Drop the deprecated `armv7` arch (the lab HA host is amd64, and

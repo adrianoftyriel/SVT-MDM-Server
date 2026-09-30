@@ -42,16 +42,16 @@ class EnrollResponse(BaseModel):
 # --- Telemetry ----------------------------------------------------------------
 
 class CheckinRequest(BaseModel):
-    battery: int | None = None
+    battery: int | None = Field(default=None, ge=0, le=100)
     os_version: str | None = None
     model: str | None = None
     capabilities: dict = Field(default_factory=dict)
 
 
 class LocationRequest(BaseModel):
-    lat: float
-    lon: float
-    accuracy_m: float | None = None
+    lat: float = Field(ge=-90, le=90)
+    lon: float = Field(ge=-180, le=180)
+    accuracy_m: float | None = Field(default=None, ge=0)
     captured_at: datetime | None = None
 
 
@@ -96,7 +96,7 @@ class CommandAck(BaseModel):
 # --- Backups ------------------------------------------------------------------
 
 class BackupFileMeta(BaseModel):
-    sha256: str
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     size: int = 0
     rel_path: str
     category: str = "file"

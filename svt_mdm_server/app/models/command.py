@@ -10,7 +10,7 @@ from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
-from app.util import utcnow
+from app.util import iso_z, utcnow
 
 
 class CommandStatus(str, enum.Enum):
@@ -66,5 +66,5 @@ class Command(Base):
             "id": self.id,
             "type": self.type,
             "payload": self.payload or {},
-            "issued_at": self.created_at.isoformat(),
+            "issued_at": iso_z(self.created_at),
         }

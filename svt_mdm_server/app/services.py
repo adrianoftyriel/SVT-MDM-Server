@@ -36,6 +36,12 @@ async def queue_command(
             f"Device '{device.name}' ({device.tier.value}) cannot run '{cmd_type}'"
         )
 
+    if cmd_type == "set_password":
+        password = (payload or {}).get("password")
+        if not isinstance(password, str) or not password:
+            # An empty password would clear the lock screen instead of setting one.
+            raise CommandError("set_password requires a non-empty password")
+
     command = Command(device_id=device.id, type=cmd_type, payload=payload or {})
     session.add(command)
     session.commit()

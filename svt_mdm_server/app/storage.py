@@ -9,13 +9,25 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
+import shutil
+import uuid
 from pathlib import Path
 
 from app.config import settings
 from app.crypto import StreamEncryptor, decrypt_iter
 
 
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+
+
+def is_valid_sha256(value: str) -> bool:
+    return SHA256_RE.fullmatch(value) is not None
+
+
 def object_path(device_id: str, sha256: str) -> Path:
+    if not is_valid_sha256(sha256):
+        raise ValueError("sha256 must be 64 lowercase hex characters")
     return Path(settings.backup_dir) / device_id / sha256[:2] / f"{sha256}.enc"
 
 
@@ -31,7 +43,8 @@ async def store(device_id: str, sha256: str, stream) -> tuple[bool, int, str]:
     """
     path = object_path(device_id, sha256)
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".enc.tmp")
+    # Unique per upload so concurrent PUTs of the same hash can't interleave.
+    tmp = path.parent / f"{sha256}.{uuid.uuid4().hex}.tmp"
 
     hasher = hashlib.sha256()
     size = 0
@@ -64,3 +77,12 @@ def open_decrypted(device_id: str, sha256: str):
 
 def delete(device_id: str, sha256: str) -> None:
     object_path(device_id, sha256).unlink(missing_ok=True)
+
+
+def delete_device_blobs(device_id: str) -> None:
+    """Remove every stored blob for a device."""
+    root = Path(settings.backup_dir).resolve()
+    target = (root / device_id).resolve()
+    if target.parent != root:  # device_id must be a single path component
+        return
+    shutil.rmtree(target, ignore_errors=True)
