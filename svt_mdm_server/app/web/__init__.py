@@ -235,7 +235,7 @@ def device_detail(
             enroll_token=device.enroll_token,
             enrollment_secret=settings.enrollment_secret,
         )
-        provisioning_svg = provisioning.qr_svg(payload)
+        provisioning_svg = provisioning.qr_png_data_uri(payload)
         provisioning_json = provisioning.payload_json(payload)
 
     # Which command buttons to enable, based on capabilities.

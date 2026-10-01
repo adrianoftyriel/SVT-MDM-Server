@@ -16,7 +16,7 @@
   <p class="muted">On a factory-reset phone, tap the first setup screen 6 times to
      open the QR scanner, then scan this to install the agent as Device Owner and
      auto-enroll. (Full control: set password, silent grants.)</p>
-  <div class="qr">{{ provisioning_svg | safe }}</div>
+  <div class="qr"><img src="{{ provisioning_svg }}" alt="Device Owner provisioning QR"></div>
   <details class="muted"><summary>Show provisioning JSON (for debugging)</summary>
     <pre style="white-space:pre-wrap;word-break:break-all">{{ provisioning_json }}</pre></details>
   {% else %}

@@ -313,3 +313,12 @@ def test_apk_redirect_is_public_and_points_at_apk_url(client):
     r = client.get("/api/apk", follow_redirects=False)
     assert r.status_code == 302
     assert r.headers["location"] == settings.apk_url
+
+
+def test_provisioning_qr_png_is_a_data_uri():
+    from app import provisioning
+
+    payload = provisioning.provisioning_payload(
+        "https://mdm.example.com/api/apk", "Q" * 43, "https://mdm.example.com", "A" * 43, "s" * 24
+    )
+    assert provisioning.qr_png_data_uri(payload).startswith("data:image/png;base64,iVBOR")

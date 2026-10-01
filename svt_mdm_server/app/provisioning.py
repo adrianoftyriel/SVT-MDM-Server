@@ -9,6 +9,7 @@ auto-enroll.
 
 from __future__ import annotations
 
+import base64
 import io
 import json
 
@@ -50,3 +51,15 @@ def qr_svg(payload: dict) -> str:
     # border=4 is the quiet zone the QR spec requires; scanners often fail below it.
     qr.save(buf, kind="svg", scale=4, border=4, dark="#000000", light="#ffffff")
     return buf.getvalue().decode("utf-8")
+
+
+def qr_png_data_uri(payload: dict) -> str:
+    """Large raster QR with whole-pixel modules.
+
+    The dashboard scales the image down smoothly; a vector QR scaled to a
+    fractional pixels-per-module gave uneven modules the Pixel camera ignored.
+    """
+    qr = segno.make(payload_json(payload), error="l")
+    buf = io.BytesIO()
+    qr.save(buf, kind="png", scale=10, border=4, dark="#000000", light="#ffffff")
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")

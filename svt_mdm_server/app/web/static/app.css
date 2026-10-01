@@ -125,7 +125,7 @@ pre { background: var(--panel-2); padding: 0.75rem; border-radius: 6px; overflow
 .bar-value { font-size: 0.85rem; color: var(--muted); text-align: right; }
 
 .qr { background: #fff; padding: 0.5rem; border-radius: 8px; display: inline-block; width: min(560px, 100%); }
-.qr svg { width: 100%; height: auto; display: block; shape-rendering: crispEdges; }
+.qr img { width: 100%; height: auto; display: block; }
 
 .apps { columns: 2; list-style: none; padding: 0; }
 .apps li { break-inside: avoid; padding: 0.15rem 0; }

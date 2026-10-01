@@ -153,6 +153,10 @@ tests/                   End-to-end smoke tests (no broker required)
 
 ## Changelog
 
+- **0.5.10** — Provisioning QR is now rendered as a large raster image (890px
+  source, shown up to 560px) instead of a scaled vector, which gave uneven
+  module sizes that a Pixel camera would not read. Payload unchanged.
+
 - **0.5.9** — Provisioning QR: add the missing `do_signature_checksum` add-on
   option (the checksum could not previously be changed, so the phone would
   reject an APK signed with a new key); serve the APK through a short
