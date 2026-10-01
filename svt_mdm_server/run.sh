@@ -12,6 +12,7 @@ export MDM_BACKUP_DIR="$(bashio::config 'backup_dir')"
 export MDM_BACKUP_KEY="$(bashio::config 'backup_encryption_key')"
 export MDM_EXTERNAL_URL="$(bashio::config 'external_url')"
 export MDM_APK_URL="$(bashio::config 'apk_url')"
+export MDM_DO_CHECKSUM="$(bashio::config 'do_signature_checksum')"
 export MDM_DB_PATH="/data/mdm.db"
 export MDM_HTTP_PORT="8099"
 

@@ -38,10 +38,14 @@ def provisioning_payload(
     }
 
 
+def payload_json(payload: dict) -> str:
+    return json.dumps(payload, separators=(",", ":"))
+
+
 def qr_svg(payload: dict) -> str:
     """Render a provisioning payload as an inline SVG QR code."""
     # Keep the code as sparse as possible: the setup wizard's camera is low-res.
-    qr = segno.make(json.dumps(payload, separators=(",", ":")), error="l")
+    qr = segno.make(payload_json(payload), error="l")
     buf = io.BytesIO()
     # border=4 is the quiet zone the QR spec requires; scanners often fail below it.
     qr.save(buf, kind="svg", scale=4, border=4, dark="#000000", light="#ffffff")

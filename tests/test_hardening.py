@@ -305,3 +305,11 @@ def test_provisioning_qr_stays_scannable():
     # Quiet zone: viewBox is symbol + 2*4 modules wide.
     modules = segno.make(compact, error="l").symbol_size(scale=1, border=0)[0]
     assert re.search(rf'viewBox="0 0 {modules + 8} {modules + 8}"', svg) or str(modules + 8) in svg
+
+
+def test_apk_redirect_is_public_and_points_at_apk_url(client):
+    from app.config import settings
+
+    r = client.get("/api/apk", follow_redirects=False)
+    assert r.status_code == 302
+    assert r.headers["location"] == settings.apk_url

@@ -226,15 +226,17 @@ def device_detail(
 
     # Device Owner provisioning QR for a not-yet-enrolled device.
     provisioning_svg = None
+    provisioning_json = None
     if not device.enrolled and device.enroll_token and settings.external_url:
         payload = provisioning.provisioning_payload(
-            apk_url=settings.apk_url,
+            apk_url=settings.external_url.rstrip("/") + "/api/apk",
             signature_checksum=settings.do_signature_checksum,
             server_url=settings.external_url,
             enroll_token=device.enroll_token,
             enrollment_secret=settings.enrollment_secret,
         )
         provisioning_svg = provisioning.qr_svg(payload)
+        provisioning_json = provisioning.payload_json(payload)
 
     # Which command buttons to enable, based on capabilities.
     command_types = [
@@ -265,6 +267,7 @@ def device_detail(
             "backup_categories": backup_categories,
             "backup_all_categories": BACKUP_CATEGORIES,
             "provisioning_svg": provisioning_svg,
+            "provisioning_json": provisioning_json,
         },
     )
 

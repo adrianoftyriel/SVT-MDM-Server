@@ -124,6 +124,7 @@ pytest -q
 | Env var (add-on option)      | Default        | Purpose                                  |
 |------------------------------|----------------|------------------------------------------|
 | `MDM_ENROLLMENT_SECRET`      | `""`           | Shared secret an agent must present to enroll. |
+| `MDM_DO_CHECKSUM` (`do_signature_checksum`) | built-in (retired key) | base64url SHA-256 of the APK signing certificate, for QR provisioning. **Set this** after rotating the signing key. |
 | `MDM_DB_PATH`                | `/data/mdm.db` | SQLite database location.                |
 | `MDM_LOG_LEVEL`              | `info`         | `debug`/`info`/`warning`/`error`.        |
 | `MDM_MQTT_PUSH`              | `false`        | Also push commands over MQTT (polling is always available). |
@@ -151,6 +152,12 @@ tests/                   End-to-end smoke tests (no broker required)
 > `svt_mdm_server/`. `tests/` and `shared/` stay at the repo root (dev-only).
 
 ## Changelog
+
+- **0.5.9** — Provisioning QR: add the missing `do_signature_checksum` add-on
+  option (the checksum could not previously be changed, so the phone would
+  reject an APK signed with a new key); serve the APK through a short
+  `/api/apk` redirect so the QR drops to version 16; show the raw provisioning
+  JSON on the device page for debugging.
 
 - **0.5.8** — Fix the Device Owner provisioning QR being too dense to scan:
   compact payload, lowest error correction, a proper 4-module quiet zone, and a

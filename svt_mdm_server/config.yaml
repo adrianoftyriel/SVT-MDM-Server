@@ -1,5 +1,5 @@
 name: SVT MDM Server
-version: "0.5.8"
+version: "0.5.9"
 slug: svt_mdm_server
 description: Self-hosted MDM for Android (and later Windows) devices
 url: https://github.com/adrianoftyriel/svt-mdm-server
@@ -45,6 +45,7 @@ options:
   backup_encryption_key: ""
   external_url: ""
   apk_url: ""
+  do_signature_checksum: ""
 schema:
   enrollment_secret: "password?"
   log_level: "list(debug|info|warning|error)?"
@@ -61,3 +62,6 @@ schema:
   # Device-facing https base URL and APK URL for Device Owner QR provisioning.
   external_url: "str?"
   apk_url: "str?"
+  # base64url SHA-256 of the APK signing certificate (no padding). Blank uses
+  # the built-in default, which belongs to a retired key - set this.
+  do_signature_checksum: "str?"

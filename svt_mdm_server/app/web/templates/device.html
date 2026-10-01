@@ -17,6 +17,8 @@
      open the QR scanner, then scan this to install the agent as Device Owner and
      auto-enroll. (Full control: set password, silent grants.)</p>
   <div class="qr">{{ provisioning_svg | safe }}</div>
+  <details class="muted"><summary>Show provisioning JSON (for debugging)</summary>
+    <pre style="white-space:pre-wrap;word-break:break-all">{{ provisioning_json }}</pre></details>
   {% else %}
   <p class="muted">Set <code>external_url</code> in the add-on config to show a
      Device Owner provisioning QR here.</p>
