@@ -152,6 +152,11 @@ tests/                   End-to-end smoke tests (no broker required)
 
 ## Changelog
 
+- **0.5.8** — Fix the Device Owner provisioning QR being too dense to scan:
+  compact payload, lowest error correction, a proper 4-module quiet zone, and a
+  larger on-screen render (version-17 code at up to 560px instead of version-21
+  at 320px). No change to options, ports, or the API surface.
+
 - **0.5.7** — Review fixes. Deleting a device now removes all its telemetry,
   backup records, commands and encrypted blobs (SQLite foreign keys are now
   enforced). Backup uploads validate `sha256` (64 lowercase hex) before touching
