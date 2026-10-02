@@ -30,6 +30,7 @@ COMMAND_TYPES = {
     "refresh_usage",
     "backup_now",
     "ring",
+    "stop_ring",
 }
 
 

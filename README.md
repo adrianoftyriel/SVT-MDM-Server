@@ -13,8 +13,8 @@ devices, packaged as a **Home Assistant add-on**.
   API token (stored only as a hash).
 - **Ingests telemetry**: location pings, installed-app inventory, and app
   usage statistics (HTTPS).
-- **Queues commands** — `locate`, `ring`, `lock`, `set_password`, `wipe`,
-  `refresh_inventory`, `refresh_usage`, `backup_now`. Devices collect them by
+- **Queues commands** — `locate`, `ring`, `stop_ring`, `lock`, `set_password`,
+  `wipe`, `refresh_inventory`, `refresh_usage`, `backup_now`. Devices collect them by
   **polling over HTTPS (the default)**. Optionally, enable `mqtt_push` to also
   push them over MQTT for instant delivery (see "MQTT push and broker ACLs").
 - **Gates commands by capability tier.** Each device reports whether it is a
@@ -83,7 +83,7 @@ users in Mosquitto yourself and restrict each to its own topics, e.g.
 `topic readwrite mdm/%u/#` (Mosquitto `pattern` ACL). Without per-device ACLs,
 any broker client can publish acks/status for any device or press the Home
 Assistant buttons. For that reason the server only accepts non-destructive
-commands (`ring`, `locate`) from Home Assistant buttons — `lock`, `wipe` and
+commands (`ring`, `stop_ring`, `locate`) from Home Assistant buttons — `lock`, `wipe` and
 `set_password` are never accepted over the broker — and it ignores acks that
 don't match the topic's device. Old retained Lock buttons are removed from HA
 automatically.
@@ -152,6 +152,11 @@ tests/                   End-to-end smoke tests (no broker required)
 > `svt_mdm_server/`. `tests/` and `shared/` stay at the repo root (dev-only).
 
 ## Changelog
+
+- **0.5.11** — New `stop_ring` command (dashboard button and a Home Assistant
+  "Stop ringing" button) to silence a ringing phone remotely. Requires agent
+  0.9.1+, which also lets the person holding the phone stop it from the
+  notification or by opening the app.
 
 - **0.5.10** — Provisioning QR is now rendered as a large raster image (890px
   source, shown up to 560px) instead of a scaled vector, which gave uneven

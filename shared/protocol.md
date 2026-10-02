@@ -30,7 +30,7 @@ shapes. Keep it in sync with `app/models` and the agent code.
   `pattern readwrite mdm/%u/#`). Without that, any broker client can publish
   acks/status for any device, so the server only trusts an ack whose command
   belongs to the topic's device, never re-completes a finished command, and
-  accepts only non-destructive commands (`ring`, `locate`) from Home Assistant
+  accepts only non-destructive commands (`ring`, `stop_ring`, `locate`) from Home Assistant
   buttons.
 
 ## MQTT topics
@@ -67,6 +67,7 @@ commands the device's capabilities support.
 | `set_password`      | ✅           | ❌                      | ❌    |
 | `wipe`              | ✅           | ✅                      | ❌    |
 | `ring`              | ✅           | ✅                      | ✅    |
+| `stop_ring`         | ✅           | ✅                      | ✅    |
 | `backup_now`        | needs `backup` capability (any tier)            ||
 
 \* plain tier may require a manual permission grant.
@@ -76,7 +77,7 @@ commands the device's capabilities support.
 ```json
 {
   "id": "uuid",
-  "type": "locate | ring | lock | set_password | wipe | refresh_inventory | refresh_usage | backup_now",
+  "type": "locate | ring | stop_ring | lock | set_password | wipe | refresh_inventory | refresh_usage | backup_now",
   "payload": { },
   "issued_at": "2026-07-21T14:00:00Z"
 }
@@ -93,11 +94,14 @@ Per-type `payload`:
 | `refresh_inventory`| `{}`                             |
 | `refresh_usage`    | `{ "days": 7 }`                  |
 | `ring`             | `{ "seconds": 30 }`              |
+| `stop_ring`        | `{}`                             |
 | `backup_now`       | `{}`                             |
 
 `ring` plays a loud alarm-stream sound (ignores silent/vibrate) for the given
-duration. It needs no special privilege. Devices are also exposed to Home
-Assistant via MQTT discovery — Ring and Locate buttons (plus
+duration, and acks as soon as it starts. `stop_ring` silences it early; the
+user can also silence it on the device from the "Stop ringing" notification
+action or by opening the app. Neither needs special privilege. Devices are also exposed to Home
+Assistant via MQTT discovery — Ring, Stop ringing and Locate buttons (plus
 battery/last-seen/location sensors) that queue the matching command. Lock,
 wipe and set_password are deliberately not exposed to Home Assistant.
 

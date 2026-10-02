@@ -322,3 +322,13 @@ def test_provisioning_qr_png_is_a_data_uri():
         "https://mdm.example.com/api/apk", "Q" * 43, "https://mdm.example.com", "A" * 43, "s" * 24
     )
     assert provisioning.qr_png_data_uri(payload).startswith("data:image/png;base64,iVBOR")
+
+
+def test_stop_ring_is_a_known_ungated_ha_command():
+    from app.hadiscovery import HA_ALLOWED_COMMANDS
+    from app.models import Device
+    from app.models.command import COMMAND_TYPES
+
+    assert "stop_ring" in COMMAND_TYPES
+    assert "stop_ring" in HA_ALLOWED_COMMANDS
+    assert Device(capabilities={}).can("stop_ring")

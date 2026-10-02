@@ -21,6 +21,7 @@ DISCOVERY_PREFIX = "homeassistant"
 # HA button command -> internal command type. Only safe commands.
 HA_BUTTONS = {
     "ring": {"name": "Ring", "icon": "mdi:bell-ring"},
+    "stop_ring": {"name": "Stop ringing", "icon": "mdi:bell-off"},
     "locate": {"name": "Locate", "icon": "mdi:crosshairs-gps"},
 }
 HA_ALLOWED_COMMANDS = set(HA_BUTTONS)

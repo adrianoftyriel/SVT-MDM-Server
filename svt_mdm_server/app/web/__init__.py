@@ -242,6 +242,7 @@ def device_detail(
     command_types = [
         "locate",
         "ring",
+        "stop_ring",
         "lock",
         "set_password",
         "wipe",
